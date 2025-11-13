@@ -76,60 +76,40 @@ def save_to_file():
             "daily_records": camp.daily_records
         }
         data.append(camp_data)
-    try:
-        with open("camp_data.json","w") as file:
-            json.dump(data, file, indent=4)
-    except FileNotFoundError:
-        print('\n camp_data.json not found')
+    
+    with open("camp_data.json","w") as file:
+        json.dump(data, file, indent=4)
 
 def read_from_file():
     try:
         with open("camp_data.json","r") as file:
             data=json.load(file)
-        Camp.all_camps = []
-        for camp_data in data:
-            camp = Camp(
-                camp_data["name"],
-                camp_data["location"],
-                camp_data["camp_type"],
-                camp_data["start_date"],
-                camp_data["end_date"],
-                camp_data["food_stock"]
-            )
-            camp.scout_leaders = camp_data["scout_leaders"]
-            camp.campers = camp_data["campers"]
-            camp.activities = camp_data["activities"]
-            camp.daily_food_usage = camp_data["daily_food_usage"]
-            camp.daily_records = camp_data["daily_records"]
-        return Camp.all_camps
+        if not data:
+            pass
+        else:
+            Camp.all_camps = []
+            for camp_data in data:
+                camp = Camp(
+                    camp_data["name"],
+                    camp_data["location"],
+                    camp_data["camp_type"],
+                    camp_data["start_date"],
+                    camp_data["end_date"],
+                    camp_data["food_stock"]
+                )
+                camp.scout_leaders = camp_data["scout_leaders"]
+                camp.campers = camp_data["campers"]
+                camp.activities = camp_data["activities"]
+                camp.daily_food_usage = camp_data["daily_food_usage"]
+                camp.daily_records = camp_data["daily_records"]
+            return Camp.all_camps
     except FileNotFoundError:
         print('\n camp_data.json not found')
         
         
-read_from_file()            
 
-camp2 = Camp(
-    name="beach Scouts",
-    location="yellowwood National Park",
-    camp_type="Overnight",
-    start_date="2025-07-01",
-    end_date="2025-07-10",
-    initial_food_stock=150
-    )
-
-
-camp2.assign_leader("Leader John")
-camp2.assign_campers(["Alice", "Ben", "Charlie", "Daisy"])
-camp2.assign_activity("Hiking", "2025-07-02")
-camp2.calc_daily_food(food_per_camper=2)
-camp2.allocate_extra_food(20)
-camp2.note_daily_record("2025-07-02", "Great hike, no incidents.")
-
-
-for i in range (len(Camp.all_camps)):
-    Camp.all_camps[i].summary()
-save_to_file()
 
         
     
     
+
