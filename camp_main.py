@@ -56,7 +56,7 @@ users = {
 
 
 def disabled_logins(username):
-    with open('disabled_logins.txt', 'w') as file:
+    with open('disabled_logins.txt', 'a') as file:
         file.write(username + ',')
 
 
@@ -78,7 +78,14 @@ def enable_login(username):
             disabled_usernames = disabled.split(',')
 
             if username in disabled_usernames:
-                del username
+                disabled_usernames.remove(username)
+                
+                with open('disabled_logins.txt', 'w') as file:
+                    if disabled_usernames:
+                        file.write(','.join(disabled_usernames) +',')
+                    else:
+                        file.write('')
+
                 return True
     except FileNotFoundError:
         return False
@@ -320,7 +327,35 @@ def admin_menu():
                         print('\nInvalid input. Please try again.')
 
         elif choice == 6:
-            continue
+            while True:
+                disabled_usernames = []
+                try:
+                    with open('disabled_logins.txt', 'r') as file:
+                        disabled_login = file.read().strip(',')
+                        if disabled_login != "":
+                            disabled_usernames.extend(disabled_login.split(','))
+                except FileNotFoundError:
+                    pass
+            
+                if disabled_usernames == []:
+                    print("\nThere are no disabled users.")
+                    break
+
+                print("\n---Enable a User---")
+                n= 0
+                for disabled_username in disabled_usernames:
+                    n += 1
+                    print(f"[{n}] {disabled_username}")
+            
+                option = int(input("\nInput your option: "))
+                if 1 <= option <= len(disabled_usernames):
+                    username_to_enable = disabled_usernames[option-1]
+                    enable_login(username_to_enable)
+                    print(f"\n User '{username_to_enable}' enabled successfully!")
+                    break
+                else:
+                    print('\nInvalid input. Please try again. ')
+
 
         elif choice == 7:
             print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
@@ -448,8 +483,16 @@ def login_scoutleader():
         print('Please login.')
         ask_username = str(input('\nUsername: '))
         ask_password = str(input('Password: '))
-        # NOTE: this needs to be fixed later — user is a list
-        login = False
+        if check_disabled_logins(ask_username):
+            print("This account has been disabled.")
+            return
+        for user in users['scout leader']:
+            if user['username'] == ask_username and user['password'] == ask_password:
+                print('\nLogin successful! Welcome Scout Leader.\n')
+                login = False
+                scout_leader_menu()
+            else:
+                print('\nInvalid username or password.\n')
 
 
 def login_logisticscoordinator():
@@ -458,14 +501,17 @@ def login_logisticscoordinator():
         print('Please login.')
         ask_username = str(input('\nUsername: '))
         ask_password = str(input('Password: '))
-        user = users['logistics coordinator']
-        # NOTE: same list issue here
-        if ask_username == "logistics":
-            print('\nLogin successful! Welcome Logistics Coordinator.\n')
-            logistics_coordinator_menu()
-            login = False
-        else:
-            print('\nInvalid username or password.\n')
+        if check_disabled_logins(ask_username):
+            print("This account has been disabled.")
+            return
+        for user in users['logistics coordinator']:
+            if user['username'] == ask_username and user['password'] == ask_password:
+                print('\nLogin successful! Welcome Logistics Coordinator.\n')
+                login = False
+                logistics_coordinator_menu()
+            else:
+                print('\nInvalid username or password.\n')
+
 
 # -------------------------------------------------
 # CAMP CREATION
@@ -583,6 +629,13 @@ def create_camp():
         print("\nCamp creation cancelled.")
 
     logistics_coordinator_menu()
+
+
+# -------------------------------------------------
+# SCOUT LEADER MENU
+# -------------------------------------------------
+
+
 
 
 # -------------------------------------------------
