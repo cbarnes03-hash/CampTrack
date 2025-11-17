@@ -1,22 +1,25 @@
+from datetime import datetime, timedelta
+import os
 import json
+
 
 class Camp():
     
     all_camps=[]
     
-    def __init__(self, name, location, camp_type, start_date, end_date, initial_food_stock):
+    def __init__(self, name, location, camp_type, start_date, end_date, initial_food_stock, scout_leaders, campers, activities, daily_food_usage, daily_records, pay_rate):
         self.name = name
         self.location = location
         self.camp_type = camp_type
         self.start_date = start_date
         self.end_date = end_date
         self.food_stock = initial_food_stock
-        self.scout_leaders = []           # List of assigned scout leaders
-        self.campers = []                 # List of campers
-        self.activities = {}              # Dict: {date: list of activities}
-        self.daily_food_usage = {}        # Dict: {date: food used}
-        self.daily_records = {}           # Dict: {date: notes}
-        self.pay_rate = 0               
+        self.scout_leaders = scout_leaders           # List of assigned scout leaders
+        self.campers = campers                       # List of campers
+        self.activities = activities                 # Dict: {date: list of activities}
+        self.daily_food_usage = daily_food_usage     # Dict: {date: food used}
+        self.daily_records = daily_records           # Dict: {date: notes}
+        self.pay_rate = pay_rate
         
         Camp.all_camps.append(self)
 
@@ -75,7 +78,7 @@ def save_to_file():
             "activities": camp.activities,
             "daily_food_usage": camp.daily_food_usage,
             "daily_records": camp.daily_records,
-            "pay_rate": getattr(camp, "pay_rate", 0)
+            "pay_rate": camp.pay_rate
         }
         data.append(camp_data)
     
@@ -84,37 +87,28 @@ def save_to_file():
 
 def read_from_file():
     try:
-        with open("camp_data.json","r") as file:
-            data=json.load(file)
-        if not data:
+        if os.path.getsize("camp_data.json") == 0:
+            return []
             pass
         else:
             Camp.all_camps = []
-            for camp_data in data:
-                camp = Camp(
-                    camp_data["name"],
-                    camp_data["location"],
-                    camp_data["camp_type"],
-                    camp_data["start_date"],
-                    camp_data["end_date"],
-                    camp_data["food_stock"]
-                )
-                camp.scout_leaders = camp_data["scout_leaders"]
-                camp.campers = camp_data["campers"]
-                camp.activities = camp_data["activities"]
-                camp.daily_food_usage = camp_data["daily_food_usage"]
-                camp.daily_records = camp_data["daily_records"]
-                camp.pay_rate = camp_data.get("pay_rate", 0)
-
-            return Camp.all_camps
+            with open("camp_data.json","r") as file:
+                data=json.load(file)
+                Camp.all_camps = []
+                for camp_data in data:
+                    camp = Camp(
+                        camp_data["name"],
+                        camp_data["location"],
+                        camp_data["camp_type"],
+                        camp_data["start_date"],
+                        camp_data["end_date"],
+                        camp_data["food_stock"],
+                        camp_data["scout_leaders"],
+                        camp_data["campers"],
+                        camp_data["activities"],
+                        camp_data["daily_food_usage"],
+                        camp_data["daily_records"],
+                        camp_data["pay_rate"])
+                return Camp.all_camps
     except FileNotFoundError:
-        print('\n camp_data.json not found')
-        return []
-        
-        
-
-
-        
-    
-    
-
+        print('\ncamp_data.json not found')
