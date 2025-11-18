@@ -157,9 +157,9 @@ def admin_menu():
             print('\n---Add New User---')
             print('\nChoose the role you wish to add.')
             while True:
-                new_role_option = int(input('\nChoose [1] for Scout Leader'
-                                            '\nChoose [2] for Logistics Coordinator'
-                                            '\nInput your option: '))
+                new_role_option = get_int('\nChoose [1] for Scout Leader'
+                                          '\nChoose [2] for Logistics Coordinator'
+                                          '\nInput your option: ', 1, 2)
                 if new_role_option == 1:
                     new_role = 'scout leader'
                     break
@@ -183,11 +183,11 @@ def admin_menu():
                       '\nChoose [2] to see Scout Leader users'
                       '\nChoose [3] to see Logistics Coordinator users')
 
-                option = int(input('Input your option: '))
+                option = get_int('Input your option: ', 1, 3)
 
                 if option == 1:
                     print(f"Select which user to change password:\n[1] {users['admin']['username']}")
-                    option2 = int(input('Input your option: '))
+                    option2 = get_int('Input your option: ', 1, 1)
                     if option2 == 1:
                         new_admin_password = str(input(f"Enter a new password for {users['admin']['username']} "))
                         users['admin']['password'] = new_admin_password
@@ -205,7 +205,11 @@ def admin_menu():
                         print(f"\nSelect which user to change password:\n[{n}] {user['username']}")
                         scout_leader_user_list.append(user)
 
-                    option3 = int(input('\nInput your option: '))
+                    if not scout_leader_user_list:
+                        print('\nNo scout leader users found.')
+                        continue
+
+                    option3 = get_int('\nInput your option: ', 1, len(scout_leader_user_list))
                     if option3 <= len(scout_leader_user_list):
                         chosen_scout_leader = scout_leader_user_list[option3 - 1]
                         print(f"\nThe current password is {chosen_scout_leader['password']}.")
@@ -225,7 +229,11 @@ def admin_menu():
                         print(f"\nSelect which user to change password:\n[{n}] {user['username']}")
                         logistics_coordinator_user_list.append(user)
 
-                    option4 = int(input('\nInput your option: '))
+                    if not logistics_coordinator_user_list:
+                        print('\nNo logistics coordinator users found.')
+                        continue
+
+                    option4 = get_int('\nInput your option: ', 1, len(logistics_coordinator_user_list))
                     if option4 <= len(logistics_coordinator_user_list):
                         chosen_coordinator = logistics_coordinator_user_list[option4 - 1]
                         print(f"\nThe current password is {chosen_coordinator['password']}.")
@@ -242,7 +250,7 @@ def admin_menu():
             while True:
                 print('\nChoose [1] to see Scout Leader users'
                       '\nChoose [2] to see Logistics Coordinator users')
-                option = int(input('Input your option: '))
+                option = get_int('Input your option: ', 1, 2)
 
                 if option == 1:
                     n = 0
@@ -252,7 +260,11 @@ def admin_menu():
                         print(f"\nSelect which user to delete:\n[{n}] {user['username']}")
                         scout_leader_user_list.append(user)
 
-                    option5 = int(input('\nInput your option: '))
+                    if not scout_leader_user_list:
+                        print('\nNo scout leader users found.')
+                        continue
+
+                    option5 = get_int('\nInput your option: ', 1, len(scout_leader_user_list))
                     if option5 <= len(scout_leader_user_list):
                         del users['scout leader'][option5 - 1]
                         print('\nUser deleted successfully')
@@ -269,7 +281,11 @@ def admin_menu():
                         print(f"\nSelect which user to delete:\n[{n}] {user['username']}")
                         logistics_coordinator_user_list.append(user)
 
-                    option6 = int(input('\nInput your option: '))
+                    if not logistics_coordinator_user_list:
+                        print('\nNo logistics coordinator users found.')
+                        continue
+
+                    option6 = get_int('\nInput your option: ', 1, len(logistics_coordinator_user_list))
                     if option6 <= len(logistics_coordinator_user_list):
                         del users['logistics coordinator'][option6 - 1]
                         print('\nUser deleted successfully')
@@ -282,7 +298,7 @@ def admin_menu():
             while True:
                 print('\nChoose [1] to see Scout Leader users'
                       '\nChoose [2] to see Logistics Coordinator users')
-                option = int(input('Input your option: '))
+                option = get_int('Input your option: ', 1, 2)
                 if option == 1:
                     n = 0
                     scout_leader_user_list = []
@@ -291,7 +307,11 @@ def admin_menu():
                         print(f"\nSelect which user to disable:\n[{n}] {user['username']}")
                         scout_leader_user_list.append(user)
 
-                    option5 = int(input('\nInput your option: '))
+                    if not scout_leader_user_list:
+                        print('\nNo scout leader users found.')
+                        continue
+
+                    option5 = get_int('\nInput your option: ', 1, len(scout_leader_user_list))
                     if option5 <= len(scout_leader_user_list):
                         user_to_disable = users['scout leader'][option5 - 1]
                         disabled_logins(user_to_disable['username'])
@@ -309,7 +329,11 @@ def admin_menu():
                         print(f"\nSelect which user to disable:\n[{n}] {user['username']}")
                         logistics_coordinator_user_list.append(user)
 
-                    option6 = int(input('\nInput your option: '))
+                    if not logistics_coordinator_user_list:
+                        print('\nNo logistics coordinator users found.')
+                        continue
+
+                    option6 = get_int('\nInput your option: ', 1, len(logistics_coordinator_user_list))
                     if option6 <= len(logistics_coordinator_user_list):
                         user_to_disable = users['logistics coordinator'][option6 - 1]
                         disabled_logins(user_to_disable['username'])
@@ -374,17 +398,32 @@ def logistics_coordinator_menu():
 
             if sub == 1:
                 camp = input("Camp name: ")
-                new_stock = int(input("New daily stock: "))
+                while True:
+                    try:
+                        new_stock = int(input("New daily stock: "))
+                        break
+                    except ValueError:
+                        print("Please enter a valid whole number!")
                 set_food_stock(camp, new_stock)
 
             elif sub == 2:
                 camp = input("Camp name: ")
-                amount = int(input("Amount to add: "))
+                while True:
+                    try:
+                        amount = int(input("Amount to add: "))
+                        break
+                    except ValueError:
+                        print("Please enter a valid whole number!")
                 top_up_food(camp, amount)
 
             elif sub == 3:
                 camp = input("Camp name: ")
-                needed = int(input("Required amount: "))
+                while True:
+                    try:
+                        needed = int(input("Required amount: "))
+                        break
+                    except ValueError:
+                        print("Please enter a valid whole number!")
                 check_food_shortage(camp, needed)
 
             else:
@@ -398,7 +437,12 @@ def logistics_coordinator_menu():
 
         elif choice == 5:
             camp = input("Camp name: ")
-            rate = int(input("Daily pay rate: "))
+            while True:
+                try:
+                    rate = int(input("Daily pay rate: "))
+                    break
+                except ValueError:
+                    print("Please enter a valid whole number!")
             set_pay_rate(camp, rate)
 
         elif choice == 6:
@@ -536,7 +580,12 @@ def create_camp():
     camp_type = choice = get_int("Input your option: ", 1, 3)
     start_date,end_date=get_dates(camp_type)
 
-    initial_food_stock = int(input('\nPlease enter the amount of food allocated for this camp [units]: '))
+    while True:
+        try:
+            initial_food_stock = int(input('\nPlease enter the amount of food allocated for this camp [units]: '))
+            break
+        except ValueError:
+            print("Please enter a valid whole number!")
 
     print("\nYour Camp Details:")
     print("Name:", name)
@@ -548,7 +597,7 @@ def create_camp():
 
     confirm = input("\nConfirm camp creation? (Y/N): ").strip().lower()
 
-    if confirm == 'y':
+    if confirm.lower == 'y':
         Camp(
             name,
             location,
@@ -589,4 +638,3 @@ while True:
         login_scoutleader()
     elif option == 3:
         login_logisticscoordinator()
-
