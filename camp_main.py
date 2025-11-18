@@ -420,11 +420,14 @@ def logistics_coordinator_menu():
                 camp = input("Camp name: ")
                 while True:
                     try:
-                        needed = int(input("Required amount: "))
+                        food_per_camper = int(input("Daily food required per camper: "))
+                        if food_per_camper < 0:
+                            print("Please enter a non-negative whole number!")
+                            continue
                         break
                     except ValueError:
                         print("Please enter a valid whole number!")
-                check_food_shortage(camp, needed)
+                check_food_shortage(camp, food_per_camper)
 
             else:
                 continue

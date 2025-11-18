@@ -6,9 +6,6 @@ import json
 
 #Tops up the food stock
 def top_up_food(camp_name, amount):
-    if not isinstance(amount, int) or amount < 0:
-        print("Top-up amount must be a non-negative whole number.")
-        return
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
@@ -20,9 +17,6 @@ def top_up_food(camp_name, amount):
 
 #Sets the daily food stock 
 def set_food_stock(camp_name, new_stock):
-    if not isinstance(new_stock, int) or new_stock < 0:
-        print("Food stock must be a non-negative whole number.")
-        return
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
@@ -94,9 +88,6 @@ def notify(message):
 
 #Sets Daily Pay Rate 
 def set_pay_rate(camp_name, rate):
-    if not isinstance(rate, int) or rate < 0:
-        print("Pay rate must be a non-negative whole number.")
-        return
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
