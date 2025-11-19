@@ -1,5 +1,7 @@
 import os
 import json
+import csv
+from datetime import datetime
 
 from logistics_coordinator_features import (
     top_up_food,
@@ -703,7 +705,7 @@ def save_selected_camps(leader_username, selected_camp_names):
         with open('leader_camps.txt', 'r') as file:
             lines = file.read().splitlines()
     except FileNotFoundError:
-        return False
+        lines = []
     
     new_lines = []
     for line in lines:
@@ -722,13 +724,15 @@ def view_leader_camp_assignments():
         with open('leader_camps.txt','r') as file:
             lines = file.read().splitlines()
     except FileNotFoundError:
-        return False
+        print("\nNo assignments found.")
+        return
     
     if len(lines) == 0:
         print('\nNo leader has been assigned camps yet')
         return
     
-    print("\nLeaders and their camps:")
+    camp_and_leaders = {}
+
     for line in lines:
         parts = line.split(',')
         if len(parts) < 2:
@@ -737,10 +741,58 @@ def view_leader_camp_assignments():
         leader_username = parts[0].strip()
         camp_name = parts[1].strip()
 
-        print(f"{leader_username} is supervising {camp_name}")
+        if camp_name not in camp_and_leaders:
+            camp_and_leaders[camp_name] = []
+        camp_and_leaders[camp_name].append(leader_username)
+
+
+    for camp, leaders in camp_and_leaders.items():
+        print(f"{camp}: {','.join(leaders)}")
     
-    def camps_overlap(camp1, camp2):
-        pass
+def camps_overlap(camp1, camp2):
+    s1 = datetime.strptime(camp1.start_date, "%Y-%m-%d")
+    e1 = datetime.strptime(camp1.end_date, "%Y-%m-%d")
+    s2 = datetime.strptime(camp2.start_date, "%Y-%m-%d")
+    e2 = datetime.strptime(camp2.end_date, "%Y-%m-%d")
+
+    return not (s1 > e2 or s2 > e1)
+
+def camps_conflict(selected_camps):
+    for camp_a in selected_camps:
+        for camp_b in selected_camps:
+            if camp_a is camp_b:
+                continue
+            if camps_overlap(camp_a, camp_b):
+                return True
+    return False
+
+def load_campers_csv(filepath):
+    campers = {}
+    try:
+        with open(filepath) as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                name = row["Name"].strip()
+                age = row["Age"].strip()
+
+                activities = row["Activities"].split(';')
+
+                campers[name] = {
+                    "age": age,
+                    "activities" : [a.strip() for a in activities]
+                }
+    except FileNotFoundError:
+        print("\nCSV file not found.")
+    
+    return campers
+
+def save_campers(camp_name, campers):
+    with open("campers_in_camp.txt", 'a') as file:
+        for name, info in campers.items():
+            activities = ";".join(info['activities'])
+            file.write(f"{camp_name},{name},{info['age']},{activities}\n")
+
+
 
 
 def scout_leader_menu(leader_username):
@@ -767,6 +819,9 @@ def scout_leader_menu(leader_username):
                     n += 1
                     print(f"[{n}] {camp.name} | {camp.location} | {camp.start_date} -> {camp.end_date}")
                 
+                print("\nCurrent Camp Assignments:")
+                view_leader_camp_assignments()
+
                 print("\nSelect the camps you wish to supervise. (Use commas to seperate numbers)")
                 selection = input("Input your option(s): ").strip()
                 if selection == "":
@@ -786,8 +841,13 @@ def scout_leader_menu(leader_username):
                     else:
                         print(f"Ignoring invalid camp number: {n}")
                     
-                if valid_indices == False:
+                if not valid_indices:
                     print("\nNo valid camps selected. Try again")
+                    continue
+
+                selected_camps = [camps[i-1] for i in valid_indices]
+                if camps_conflict(selected_camps):
+                    print("You camps you have selected overlap.\nPlease choose camps that do not overlap.")
                     continue
 
                 print(f"{leader_username} has selected these camps to supervise:")
@@ -804,8 +864,70 @@ def scout_leader_menu(leader_username):
             
         
         elif choice == 2:
-            # TODO
-            print('\n[NOT IMPLENENTED YET]')
+            while True:
+                camps = read_from_file()
+                if camps == []:
+                    print('\nNo camps exist yet. Ask the logistics coordinator to create one.')
+                    break
+                print('\nAvaliable Camps: ')
+                n = 0
+                for camp in camps:
+                    n += 1
+                    print(f"[{n}] {camp.name} | {camp.location} | {camp.start_date} -> {camp.end_date}")
+                
+                print("\nSelect a camp to assign campers to: ")
+                
+                try:
+                    choice= int(input("Input your option: "))
+                    if not (1 <= choice <= len(camps)):
+                        print("\nNo camps selected.")
+                        continue
+                except ValueError:
+                    print("Invalid input. Please try again")
+                    continue
+
+                selected_camp = camps[choice - 1]
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                csv_folder = os.path.join(base_dir, "campers")
+                
+                if not os.path.exists(csv_folder):
+                    print("\nCSV folder not found")
+                    break
+                files = []
+                for f in os.listdir(csv_folder):
+                    if f.endswith(".csv"):
+                        files.append(f)
+                if not files:
+                    print("\nNo CSV files found in campers.")
+                    break
+
+                print("\nAvaliable CSV Files:")
+                n = 0
+                for f in files:
+                    n+=1
+                    print(f"[{n}] {f}")
+                
+                try:
+                    file_choice = int(input("\nSelect a CSV file to import: "))
+                    if not (1<= file_choice <= len(files)):
+                        print("Invalid output. Please try again.")
+                        continue
+                except ValueError:
+                    print("Invalid output. Please try again.")
+                    continue
+
+                selected_file = files[file_choice - 1 ]
+                filepath = os.path.join(csv_folder, selected_file)
+
+                campers = load_campers_csv(filepath)
+                if not campers:
+                    print("\nCSV contained no campers.")
+                    continue
+
+                save_campers(selected_camp.name, campers)
+                print(f"\nSuccessfully assigned {len(campers)} campers to {selected_camp}!")
+                break
+                
 
         elif choice == 3 :
              # TODO
