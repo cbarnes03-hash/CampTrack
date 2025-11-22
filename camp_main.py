@@ -931,7 +931,7 @@ def scout_leader_menu(leader_username):
 
         elif choice == 3 :
              # TODO
-             #This function reads and updates the CSV file that has the list of campers in. It sets a default amount to 3 units per day but each data point can be edited by the scout leader.
+             # this function takes the number of food assigned per camp, the number of campers in the
              script_dir = os.path.dirname(os.path.abspath(__file__)) #this gets the folder where the script is
 
              file_path = os.path.join(script_dir, "campers", "campers_1.csv") #This builds the path to campers_1.csv which is inside campers rn.
@@ -958,7 +958,6 @@ def scout_leader_menu(leader_username):
 
                  food_per_camper = camp["food_stock"] / number_of_rows
                  print(f"The food assigned per camper is {food_per_camper}")
-
              assign_food_per_camper()
 
         #print('\n[NOT IMPLENENTED YET]')
@@ -966,6 +965,8 @@ def scout_leader_menu(leader_username):
         elif choice == 4:
             # TODO
             print('\n[NOT IMPLENENTED YET]')
+
+
 
         elif choice == 5:
             # TODO
