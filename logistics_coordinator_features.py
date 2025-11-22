@@ -51,6 +51,7 @@ def dashboard():
         print("No camps found.")
         return None
 
+
     total_campers = sum(len(camp.campers) for camp in camps)
     total_leaders = sum(len(camp.scout_leaders) for camp in camps)
 
@@ -166,18 +167,8 @@ def check_food_shortage(camp_name):
             except (TypeError, ValueError):
                 camp_duration_days = 1
             
-            camper_count = 0
-            try:
-                with open("campers_in_camp.txt", 'r') as file:
-                    for line in file:
-                        parts = line.strip().split(',')
-                        if len(parts) < 2:
-                            continue
-                        camp_in_file = parts[0].strip()
-                        if camp_in_file == camp_name:
-                            camper_count +=1
-            except FileNotFoundError:
-                camper_count = len(camp.campers)
+
+            camper_count = len(camp.campers)
 
             total_available = camp.food_stock * camp_duration_days
             required_amount = camper_count * food_per_camper * camp_duration_days
@@ -257,3 +248,7 @@ def get_dates(camp_type):
     end_date = second_date.strftime("%Y-%m-%d")
 
     return start_date, end_date
+
+
+
+

@@ -692,53 +692,34 @@ def create_camp():
 # -------------------------------------------------
 
 def save_selected_camps(leader_username, selected_camp_names):
-    try:
-        with open('leader_camps.txt', 'r') as file:
-            lines = file.read().splitlines()
-    except FileNotFoundError:
-        lines = []
-
-    new_lines = []
-    for line in lines:
-        if line.startswith(leader_username + ',') == False:
-            new_lines.append(line)
-
-    for camp_name in selected_camp_names:
-        new_lines.append(f"{leader_username},{camp_name}")
-
-    with open('leader_camps.txt', 'w') as file:
-        for line in new_lines:
-            file.write(line + '\n')
+    camps = read_from_file()
+    for camp in camps:
+        if camp.name in selected_camp_names:
+            camp.assign_leader(leader_username)
+        else:
+            if leader_username in camp.scout_leaders:
+                camp.scout_leaders.remove(leader_username)
+    save_to_file()
 
 def view_leader_camp_assignments():
-    try:
-        with open('leader_camps.txt','r') as file:
-            lines = file.read().splitlines()
-    except FileNotFoundError:
-        print("\nNo assignments found.")
+    camps = read_from_file()
+    if not camps:
+        print("\nNo camps exist yet.")
         return
 
-    if len(lines) == 0:
-        print('\nNo leader has been assigned camps yet')
-        return
+    value = False
 
-    camp_and_leaders = {}
+    for camp in camps:
+        if camp.scout_leaders:
+            value = True
+            print(f"{camp.name}: {', '.join(camp.scout_leaders)}")
 
-    for line in lines:
-        parts = line.split(',')
-        if len(parts) < 2:
-            continue
-
-        leader_username = parts[0].strip()
-        camp_name = parts[1].strip()
-
-        if camp_name not in camp_and_leaders:
-            camp_and_leaders[camp_name] = []
-        camp_and_leaders[camp_name].append(leader_username)
+    if value == False:
+        print("\nNo leader has been assigned camps yet")
+    
+        
 
 
-    for camp, leaders in camp_and_leaders.items():
-        print(f"{camp}: {','.join(leaders)}")
 
 def camps_overlap(camp1, camp2):
     s1 = datetime.strptime(camp1.start_date, "%Y-%m-%d")
@@ -778,28 +759,26 @@ def load_campers_csv(filepath):
     return campers
 
 def save_campers(camp_name, campers):
-    with open("campers_in_camp.txt", 'a') as file:
-        for name, info in campers.items():
-            activities = ";".join(info['activities'])
-            file.write(f"{camp_name},{name},{info['age']},{activities}\n")
+    camps = read_from_file()
+    
+    for camp in camps:
+        if camp.name == camp_name:
+            for name in campers.keys():
+                value = False
 
-def get_campers_count_per_camp():
-    campers_by_camp = {}
+                for other_camp in camps:
+                    if other_camp.name != camp_name and name in other_camp.campers:
+                        print(f"{name} already assigned to another camp.")
+                        value = True
+                        break
+                if value == False:
+                    if name not in camp.campers:
+                        camp.campers.append(name)
+            break
+    save_to_file()
+    print(f"\nAssigned campers to {camp_name}.")
 
-    try:
-        with open("campers_in_camp.txt", "r") as file:
-            for line in file:
-                parts = line.strip().split(',')
-                if len(parts)<2:
-                    continue
-                camp_name = parts[0]
-                camper_name = parts[1]
 
-                campers_by_camp.setdefault(camp_name, []).append(camper_name)
-    except FileNotFoundError:
-        pass
-
-    return campers_by_camp
 
 def save_food_requirement(camp_name, food_per_camper):
     try:
@@ -956,22 +935,15 @@ def scout_leader_menu(leader_username):
                     print('\nNo camps exist yet. Ask the logistics coordinator to create one.')
                     break
                 supervised = []
-                try:
-                    with open("leader_camps.txt", 'r') as file:
-                        for line in file:
-                            parts = line.strip().split(',')
-                            user = parts[0].strip()
-                            camp_name = parts[1].strip()
-                            if user == leader_username:
-                                supervised.append(camp_name)
-                except FileNotFoundError:
-                    break
+
+                for camp in camps:
+                    if leader_username in camp.scout_leaders:
+                        supervised.append(camp)
 
                 if not supervised:
                     print("\nYou are not supervising any camps.")
-                    continue
-            
-                campers_by_camp = get_campers_count_per_camp() 
+                    break
+        
 
                 print("\nYour Camps and Food Info:\n")
                 n = 0
@@ -985,8 +957,8 @@ def scout_leader_menu(leader_username):
                         print(f"{camp_name} not found in camp records.")
                         continue
                     
-                    campers_list = campers_by_camp.get(camp_name, [])
-                    camper_count = len(campers_list)
+
+                    camper_count = len(supervised_camp.campers)
                     
                     try:
                         start = datetime.strptime(supervised_camp.start_date, "%Y-%m-%d")
