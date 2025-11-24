@@ -961,7 +961,32 @@ def scout_leader_menu(leader_username):
              assign_food_per_camper()
 
         elif choice == 4:
-            pass
+            camps = read_from_file()
+            for i, camp in enumerate(camps, start=1):
+                print(f"{i} | {camp.name}| {camp.start_date} -> {camp.end_date}")
+
+            choice = get_int("\nSelect a camp to add entry to: ", 1, len(camps))
+            camp = camps[choice - 1]
+
+            print(f"\nAdding the daily entry to: {camp.name}")
+
+            # updating the daily records
+
+            while True:
+                new_date = input("Enter the date(or type n to exit):")
+                if new_date.lower() == "n":
+                    break
+
+                new_note = input("Enter the diary entry for today")
+
+                camp.note_daily_record(new_date, new_note)
+                save_to_file()
+
+                view_choice = input("Your entry has been added. Would you like to view it? Type 'y' or 'n': ")
+                if view_choice.lower() == "y":
+                    print(camp.daily_records)
+                else:
+                    break
 
         elif choice == 5:
             print('\nChoose [1] to See Engagement Score'
