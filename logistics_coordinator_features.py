@@ -5,6 +5,7 @@ import pandas as pd
 import json
 import matplotlib.pyplot as plt
 from utils import get_int
+from notifications import add_notification, load_notifications
 
 
 def _engagement_score(camp):
@@ -177,7 +178,7 @@ def check_food_shortage(camp_name):
             print(f"{camp.name} requires {required_amount} units for {camper_count} campers over {camp_duration_days} day(s).")
             
             if total_available < required_amount:
-                notify(f"Food shortage at {camp_name}! Only {camp.food_stock} units left but {required_amount} needed.")
+                add_notification(f"Food shortage at {camp_name}! Only {camp.food_stock} units left but {required_amount} needed.")
             else:
                 print("Food stock is sufficient.")
             return
@@ -189,21 +190,6 @@ def check_food_shortage(camp_name):
 # and if dates are invalid camp_duration_days = 1. 
 # #Scout Leaders assign food required per camper per day and coordinator checks shortages
  #adjust this function later to calculate required amount automatically - once leader features are ready
-
-
-
-
-def notify(message):
-    try:
-        with open("notifications.json", "r") as f:
-            data = json.load(f)
-    except:
-        data = []
-
-    data.append(message)
-
-    with open("notifications.json", "w") as f:
-        json.dump(data, f, indent=4)
 
 #Sets Daily Pay Rate 
 def set_pay_rate(camp_name, rate):
