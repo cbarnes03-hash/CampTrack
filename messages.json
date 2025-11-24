@@ -1,0 +1,10 @@
+{
+    "messages": [
+        {
+            "from": "logistics",
+            "to": "admin",
+            "text": "hello",
+            "timestamp": "2025-11-24 20:10:13"
+        }
+    ]
+}

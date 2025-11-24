@@ -2,6 +2,8 @@ import os
 import json
 import csv
 from datetime import datetime
+from messaging import messaging_menu
+
 
 from logistics_coordinator_features import (
     top_up_food,
@@ -13,28 +15,15 @@ from logistics_coordinator_features import (
     plot_leaders_per_camp,
     plot_engagement_scores,
     set_pay_rate,
-    get_dates
+    get_dates,
+    delete_camp,
+    edit_camp,
+    create_camp,
 )
 
 from camp_class import Camp, save_to_file, read_from_file
 
-def get_int(prompt, min_val=None, max_val=None):
-    while True:
-        user_input = input(prompt)
-
-        if not user_input.isdigit():
-            print("Invalid input. Please enter a number.")
-            continue
-
-        value = int(user_input)
-
-        if (min_val is not None and value < min_val) or \
-           (max_val is not None and value > max_val):
-            print("Invalid option. Please choose a valid number.")
-            continue
-
-        return value
-
+from utils import get_int
 
 
 print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
@@ -407,15 +396,17 @@ def logistics_coordinator_menu():
               '\nChoose [4] to Visualise Camp Data'
               '\nChoose [5] to Access Financial Settings'
               '\nChoose [6] to Access Notifications'
-              '\nChoose [7] to Logout')
+              '\nChoose [7] to Messaging'
+              '\nChoose [8] to Logout')
 
-        choice = get_int("Input your option: ", 1, 7)
+        choice = get_int("Input your option: ", 1, 8)
 
         if choice == 1:
             print('\nCamp Management Menu')
             print('\nChoose [1] to Create a Camp'
                   '\nChoose [2] to Edit Existing Camp'
-                  '\nChoose [3] to Return to Main Menu')
+                  '\nChoose [3] to Delete a Camp'
+                  '\nChoose [4] to Return to Main Menu')
             choice = get_int("\nInput your option: ", 1, 3)
 
             if choice == 1:
@@ -423,6 +414,8 @@ def logistics_coordinator_menu():
             elif choice == 2:
                 edit_camp()
             elif choice == 3:
+                delete_camp()
+            elif choice == 4:
                 logistics_coordinator_menu()
             else:
                 print('Invalid input. Please try again.')
@@ -506,8 +499,11 @@ def logistics_coordinator_menu():
                     print("-", n)
             except:
                 print("No notifications found.")
-
         elif choice == 7:
+            messaging_menu("logistics", users)
+
+
+        elif choice == 8:
             print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
             print('\nWelcome to CampTrack! Please select a user.')
             return
@@ -574,117 +570,6 @@ def login_logisticscoordinator():
                 print('\nInvalid username or password.\n')
 
 
-# -------------------------------------------------
-# CAMP CREATION
-# -------------------------------------------------
-def edit_camp():
-    camps = read_from_file()
-
-    if not camps:
-        print("\nNo camps exist. Create one first.")
-        return
-
-    print("\n--- Existing Camps ---")
-    for i, camp in enumerate(camps, start=1):
-        print(f"[{i}] {camp.name} ({camp.location})")
-
-    choice = get_int("\nSelect a camp to edit: ", 1, len(camps))
-    camp = camps[choice - 1]
-
-    print(f"\nEditing Camp: {camp.name}")
-    print("Press ENTER or type 'same' to keep the current value.\n")
-
-    # Helper function for text fields
-    def update_text(prompt, current_value):
-        value = input(f"{prompt} [{current_value}]: ").strip()
-        if value.lower() in ("", "same"):
-            return current_value
-        return value
-
-    # Helper function for numeric fields
-    def update_number(prompt, current_value):
-        value = input(f"{prompt} [{current_value}]: ").strip()
-        if value.lower() in ("", "same"):
-            return current_value
-        if value.isdigit():
-            return int(value)
-        print("Invalid number. Keeping current value.")
-        return current_value
-
-    # Update values
-    camp.name = update_text("New Name", camp.name)
-    camp.location = update_text("New Location", camp.location)
-    camp.camp_type = get_int(update_text('Please enter the new camp type:'
-          '\nSelect [1] for Day Camp'
-          '\nSelect [2] for Overnight'
-          '\nSelect [3] for Multiple Days', camp.camp_type) )
-    date_change = input("Update dates? (y/n): ").strip().lower()
-    if date_change == ("y"):                                           #updated to contain date checking function
-        new_start, new_end = get_dates(camp.camp_type)
-        camp.start_date = new_start
-        camp.end_date = new_end
-    camp.food_stock = update_number("New Daily Food Stock", camp.food_stock)
-    camp.pay_rate = update_number("New Pay Rate", camp.pay_rate)
-
-    save_to_file()
-    print("\nCamp updated successfully!")
-
-
-def create_camp():
-    print('\nCamp Creator')
-
-    name = input('\nPlease enter the name of this camp: ')
-    location = input('\nPlease enter the location of this camp: ')
-
-    print('\nPlease enter the camp type:'
-          '\nSelect [1] for Day Camp'
-          '\nSelect [2] for Overnight'
-          '\nSelect [3] for Multiple Days')
-    camp_type = choice = get_int("Input your option: ", 1, 3)
-    start_date,end_date=get_dates(camp_type)
-
-    while True:
-        try:
-            initial_food_stock = int(input('\nPlease enter the amount of food allocated for this camp [units]: '))
-            break
-        except ValueError:
-            print("Please enter a valid whole number!")
-
-    print("\nYour Camp Details:")
-    print("Name:", name)
-    print("Location:", location)
-    print("Type:", camp_type)
-    print("Start Date:", start_date)
-    print("End Date:", end_date)
-    print("Daily Food Stock:", initial_food_stock)
-
-    while True:
-        confirm = input("\nConfirm camp creation? (Y/N): ").strip().lower()
-        if confirm in ('y', 'n'):
-            break
-        print("Please enter Y or N.")
-
-    if confirm == 'y':
-        Camp(
-            name,
-            location,
-            camp_type,
-            start_date,
-            end_date,
-            initial_food_stock,
-            [],
-            [],
-            {},
-            {},
-            {},
-            ""
-        )
-        save_to_file()
-        print("\nCamp successfully created!")
-    else:
-        print("\nCamp creation cancelled.")
-
-    logistics_coordinator_menu()
 
 
 # -------------------------------------------------
