@@ -2,8 +2,6 @@ import os
 import json
 import csv
 from datetime import datetime
-from messaging import messaging_menu
-
 
 from logistics_coordinator_features import (
     top_up_food,
@@ -15,15 +13,28 @@ from logistics_coordinator_features import (
     plot_leaders_per_camp,
     plot_engagement_scores,
     set_pay_rate,
-    get_dates,
-    delete_camp,
-    edit_camp,
-    create_camp,
+    get_dates
 )
 
 from camp_class import Camp, save_to_file, read_from_file
 
-from utils import get_int
+def get_int(prompt, min_val=None, max_val=None):
+    while True:
+        user_input = input(prompt)
+
+        if not user_input.isdigit():
+            print("Invalid input. Please enter a number.")
+            continue
+
+        value = int(user_input)
+
+        if (min_val is not None and value < min_val) or \
+           (max_val is not None and value > max_val):
+            print("Invalid option. Please choose a valid number.")
+            continue
+
+        return value
+
 
 
 print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
@@ -396,17 +407,15 @@ def logistics_coordinator_menu():
               '\nChoose [4] to Visualise Camp Data'
               '\nChoose [5] to Access Financial Settings'
               '\nChoose [6] to Access Notifications'
-              '\nChoose [7] to Messaging'
-              '\nChoose [8] to Logout')
+              '\nChoose [7] to Logout')
 
-        choice = get_int("Input your option: ", 1, 8)
+        choice = get_int("Input your option: ", 1, 7)
 
         if choice == 1:
             print('\nCamp Management Menu')
             print('\nChoose [1] to Create a Camp'
                   '\nChoose [2] to Edit Existing Camp'
-                  '\nChoose [3] to Delete a Camp'
-                  '\nChoose [4] to Return to Main Menu')
+                  '\nChoose [3] to Return to Main Menu')
             choice = get_int("\nInput your option: ", 1, 3)
 
             if choice == 1:
@@ -414,8 +423,6 @@ def logistics_coordinator_menu():
             elif choice == 2:
                 edit_camp()
             elif choice == 3:
-                delete_camp()
-            elif choice == 4:
                 logistics_coordinator_menu()
             else:
                 print('Invalid input. Please try again.')
@@ -451,7 +458,16 @@ def logistics_coordinator_menu():
 
             elif sub == 3:
                 camp = input("Camp name: ")
-                check_food_shortage(camp)
+                while True:
+                    try:
+                        food_per_camper = int(input("Daily food required per camper: "))
+                        if food_per_camper < 0:
+                            print("Please enter a non-negative whole number!")
+                            continue
+                        break
+                    except ValueError:
+                        print("Please enter a valid whole number!")
+                check_food_shortage(camp, food_per_camper)
 
             else:
                 continue
@@ -499,11 +515,8 @@ def logistics_coordinator_menu():
                     print("-", n)
             except:
                 print("No notifications found.")
+
         elif choice == 7:
-            messaging_menu("logistics", users)
-
-
-        elif choice == 8:
             print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
             print('\nWelcome to CampTrack! Please select a user.')
             return
@@ -570,6 +583,117 @@ def login_logisticscoordinator():
                 print('\nInvalid username or password.\n')
 
 
+# -------------------------------------------------
+# CAMP CREATION
+# -------------------------------------------------
+def edit_camp():
+    camps = read_from_file()
+
+    if not camps:
+        print("\nNo camps exist. Create one first.")
+        return
+
+    print("\n--- Existing Camps ---")
+    for i, camp in enumerate(camps, start=1):
+        print(f"[{i}] {camp.name} ({camp.location})")
+
+    choice = get_int("\nSelect a camp to edit: ", 1, len(camps))
+    camp = camps[choice - 1]
+
+    print(f"\nEditing Camp: {camp.name}")
+    print("Press ENTER or type 'same' to keep the current value.\n")
+
+    # Helper function for text fields
+    def update_text(prompt, current_value):
+        value = input(f"{prompt} [{current_value}]: ").strip()
+        if value.lower() in ("", "same"):
+            return current_value
+        return value
+
+    # Helper function for numeric fields
+    def update_number(prompt, current_value):
+        value = input(f"{prompt} [{current_value}]: ").strip()
+        if value.lower() in ("", "same"):
+            return current_value
+        if value.isdigit():
+            return int(value)
+        print("Invalid number. Keeping current value.")
+        return current_value
+
+    # Update values
+    camp.name = update_text("New Name", camp.name)
+    camp.location = update_text("New Location", camp.location)
+    camp.camp_type = get_int(update_text('Please enter the new camp type:'
+          '\nSelect [1] for Day Camp'
+          '\nSelect [2] for Overnight'
+          '\nSelect [3] for Multiple Days', camp.camp_type) )
+    date_change = input("Update dates? (y/n): ").strip().lower()
+    if date_change == ("y"):                                           #updated to contain date checking function
+        new_start, new_end = get_dates(camp.camp_type)
+        camp.start_date = new_start
+        camp.end_date = new_end
+    camp.food_stock = update_number("New Daily Food Stock", camp.food_stock)
+    camp.pay_rate = update_number("New Pay Rate", camp.pay_rate)
+
+    save_to_file()
+    print("\nCamp updated successfully!")
+
+
+def create_camp():
+    print('\nCamp Creator')
+
+    name = input('\nPlease enter the name of this camp: ')
+    location = input('\nPlease enter the location of this camp: ')
+
+    print('\nPlease enter the camp type:'
+          '\nSelect [1] for Day Camp'
+          '\nSelect [2] for Overnight'
+          '\nSelect [3] for Multiple Days')
+    camp_type = choice = get_int("Input your option: ", 1, 3)
+    start_date,end_date=get_dates(camp_type)
+
+    while True:
+        try:
+            initial_food_stock = int(input('\nPlease enter the amount of food allocated for this camp [units]: '))
+            break
+        except ValueError:
+            print("Please enter a valid whole number!")
+
+    print("\nYour Camp Details:")
+    print("Name:", name)
+    print("Location:", location)
+    print("Type:", camp_type)
+    print("Start Date:", start_date)
+    print("End Date:", end_date)
+    print("Daily Food Stock:", initial_food_stock)
+
+    while True:
+        confirm = input("\nConfirm camp creation? (Y/N): ").strip().lower()
+        if confirm in ('y', 'n'):
+            break
+        print("Please enter Y or N.")
+
+    if confirm == 'y':
+        Camp(
+            name,
+            location,
+            camp_type,
+            start_date,
+            end_date,
+            initial_food_stock,
+            [],
+            [],
+            {},
+            {},
+            {},
+            ""
+        )
+        save_to_file()
+        print("\nCamp successfully created!")
+    else:
+        print("\nCamp creation cancelled.")
+
+    logistics_coordinator_menu()
 
 
 # -------------------------------------------------
@@ -577,34 +701,53 @@ def login_logisticscoordinator():
 # -------------------------------------------------
 
 def save_selected_camps(leader_username, selected_camp_names):
-    camps = read_from_file()
-    for camp in camps:
-        if camp.name in selected_camp_names:
-            camp.assign_leader(leader_username)
-        else:
-            if leader_username in camp.scout_leaders:
-                camp.scout_leaders.remove(leader_username)
-    save_to_file()
+    try:
+        with open('leader_camps.txt', 'r') as file:
+            lines = file.read().splitlines()
+    except FileNotFoundError:
+        lines = []
+
+    new_lines = []
+    for line in lines:
+        if line.startswith(leader_username + ',') == False:
+            new_lines.append(line)
+
+    for camp_name in selected_camp_names:
+        new_lines.append(f"{leader_username},{camp_name}")
+
+    with open('leader_camps.txt', 'w') as file:
+        for line in new_lines:
+            file.write(line + '\n')
 
 def view_leader_camp_assignments():
-    camps = read_from_file()
-    if not camps:
-        print("\nNo camps exist yet.")
+    try:
+        with open('leader_camps.txt','r') as file:
+            lines = file.read().splitlines()
+    except FileNotFoundError:
+        print("\nNo assignments found.")
         return
 
-    value = False
+    if len(lines) == 0:
+        print('\nNo leader has been assigned camps yet')
+        return
 
-    for camp in camps:
-        if camp.scout_leaders:
-            value = True
-            print(f"{camp.name}: {', '.join(camp.scout_leaders)}")
+    camp_and_leaders = {}
 
-    if value == False:
-        print("\nNo leader has been assigned camps yet")
-    
-        
+    for line in lines:
+        parts = line.split(',')
+        if len(parts) < 2:
+            continue
+
+        leader_username = parts[0].strip()
+        camp_name = parts[1].strip()
+
+        if camp_name not in camp_and_leaders:
+            camp_and_leaders[camp_name] = []
+        camp_and_leaders[camp_name].append(leader_username)
 
 
+    for camp, leaders in camp_and_leaders.items():
+        print(f"{camp}: {','.join(leaders)}")
 
 def camps_overlap(camp1, camp2):
     s1 = datetime.strptime(camp1.start_date, "%Y-%m-%d")
@@ -644,38 +787,11 @@ def load_campers_csv(filepath):
     return campers
 
 def save_campers(camp_name, campers):
-    camps = read_from_file()
-    
-    for camp in camps:
-        if camp.name == camp_name:
-            for name in campers.keys():
-                value = False
+    with open("campers_in_camp.txt", 'a') as file:
+        for name, info in campers.items():
+            activities = ";".join(info['activities'])
+            file.write(f"{camp_name},{name},{info['age']},{activities}\n")
 
-                for other_camp in camps:
-                    if other_camp.name != camp_name and name in other_camp.campers:
-                        print(f"{name} already assigned to another camp.")
-                        value = True
-                        break
-                if value == False:
-                    if name not in camp.campers:
-                        camp.campers.append(name)
-            break
-    save_to_file()
-    print(f"\nAssigned campers to {camp_name}.")
-
-
-
-def save_food_requirement(camp_name, food_per_camper):
-    try:
-        with open("food_requirements.json","r") as file:
-            data = json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {}
-    
-    data[camp_name] = food_per_camper
-
-    with open("food_requirements.json", 'w') as file:
-        json.dump(data, file, indent=4)
 
 
 
@@ -814,73 +930,169 @@ def scout_leader_menu(leader_username):
 
 
         elif choice == 3 :
-            while True:
-                camps = read_from_file()
-                if camps == []:
-                    print('\nNo camps exist yet. Ask the logistics coordinator to create one.')
-                    break
-                supervised = []
+             # TODO
+             # this function takes the number of food assigned per camp, the number of campers in the
+             script_dir = os.path.dirname(os.path.abspath(__file__)) #this gets the folder where the script is
 
-                for camp in camps:
-                    if leader_username in camp.scout_leaders:
-                        supervised.append(camp)
+             file_path = os.path.join(script_dir, "campers", "campers_1.csv") #This builds the path to campers_1.csv which is inside campers rn.
 
-                if not supervised:
-                    print("\nYou are not supervising any camps.")
-                    break
-        
+             def assign_food_per_camper():
+                 with open(file_path, newline='') as csvfile:
+                     readFile =  csv.DictReader(csvfile)
 
-                print("\nYour Camps and Food Info:\n")
-                n = 0
-                for camp_name in supervised : 
-                    supervised_camp = None
-                    for c in camps:
-                        if c.name == camp_name:
-                            supervised_camp = c
-                            break
-                    if supervised_camp is None:
-                        print(f"{camp_name} not found in camp records.")
-                        continue
-                    
+                     number_of_rows = 0
 
-                    camper_count = len(supervised_camp.campers)
-                    
-                    try:
-                        start = datetime.strptime(supervised_camp.start_date, "%Y-%m-%d")
-                        end = datetime.strptime(supervised_camp.end_date, "%Y-%m-%d")
-                        camp_duration_days = max((end - start).days + 1, 1)
-                    except (TypeError, ValueError):
-                        camp_duration_days = 1
-                                        
-                    n += 1
-                    print(f"[{n}] {supervised_camp.name} | {supervised_camp.location} | {supervised_camp.start_date} -> {supervised_camp.end_date}")
-                    print(f"Stock (units per day): {supervised_camp.food_stock}")
-                    print(f"Total food in camp duration : {supervised_camp.food_stock * camp_duration_days}")
-                    print(f"Campers: {camper_count}")
-                    
-                    if camper_count == 0:
-                        print("No campers assigned yet. Skipping food assignment")
-                        continue
-                    
-                    food_per_camper = get_int("Enter food amount per camper per day (units): ", min_val= 0)
-                    total_required = food_per_camper * camper_count * camp_duration_days
-                    print(f"Total daily food required for this camp: {total_required}")
+                     for row in readFile:
+                         number_of_rows += 1
 
-                    save_food_requirement(supervised_camp.name, food_per_camper)
-                    
+                     if number_of_rows == 0:
+                         print("There are currently no campers in you camp. Please upload campers.")
+                     else:
+                         print (f"There are {number_of_rows} campers in your camp.") #we need to edit this so that it reads through all the csv folders per camp
 
-                break
+                 with open("camp_data.json", "r") as file:
+                     data = json.load(file)
 
+                 for camp in data:
+                     print(f"The current units of food assigned to this camp is: {camp["food_stock"]}.")
+
+                 food_per_camper = camp["food_stock"] / number_of_rows
+                 print(f"The food assigned per camper is {food_per_camper}")
+             assign_food_per_camper()
 
         elif choice == 4:
-            # TODO
-            print('\n[NOT IMPLENENTED YET]')
+            camps = read_from_file()
+            for i, camp in enumerate(camps, start=1):
+                print(f"{i} | {camp.name}| {camp.start_date} -> {camp.end_date}")
 
+            choice = get_int("\nSelect a camp to add entry to: ", 1, len(camps))
+            camp = camps[choice - 1]
 
+            print(f"\nAdding the daily entry to: {camp.name}")
+
+            # updating the daily records
+
+            while True:
+                new_date = input("Enter the date(or type n to exit):")
+                if new_date.lower() == "n":
+                    break
+
+                new_note = input("Enter the diary entry for today")
+
+                camp.note_daily_record(new_date, new_note)
+                save_to_file()
+
+                view_choice = input("Your entry has been added. Would you like to view it? Type 'y' or 'n': ")
+                if view_choice.lower() == "y":
+                    print(camp.daily_records)
+                else:
+                    break
 
         elif choice == 5:
-            # TODO
-            print('\n[NOT IMPLENENTED YET]')
+            print('\nChoose [1] to See Engagement Score'
+                  '\nChoose [2] to See Details for all Existing Camps'
+                  '\nChoose [3] to See Money a Specific Camp Earned'
+                  '\nChoose [4] to See Total Money Earned')
+            choice = get_int('Input your option: ', 1, 4)
+
+            if choice == 1:
+
+                from logistics_coordinator_features import _engagement_score
+                from camp_class import read_from_file, Camp
+
+                def print_engagement_score():
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    try:
+                        choice = int(input("\nEnter the camp number that you want to see the Engagement Score of: "))
+                        if choice < 1 or choice > len(Camp.all_camps):
+                            print("Invalid selection of camp.")
+                            return
+                    except ValueError:
+                        print("Please enter a valid number.")
+                        return
+
+                    camp = Camp.all_camps[choice - 1]
+                    eng_score = _engagement_score(camp)
+
+                    print(f"\nEngagement Score for {camp.name}: {eng_score}")
+
+                print_engagement_score()
+                '''Function to see the engagement score for a specific camp. 
+All existing camps will be printed & the user can pick the camp they would like to see the score of. 
+If they pick a camp that doesn’t exist, there will be an error message and they can go through the process again.'''
+
+            if choice == 2:
+                def info_from_json():
+                    with open('camp_data.json', 'r') as file:
+                        data = json.load(file)
+                        for camp in data:
+                            print(camp)
+
+                info_from_json()
+
+            if choice == 3:
+                def money_earned_per_camp():
+                    from camp_class import read_from_file, Camp
+                    from logistics_coordinator_features import set_pay_rate, Camp
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    try:
+                        choice = int(input("\nEnter the camp number that you want to see the Earnings of: "))
+                        if choice < 1 or choice > len(Camp.all_camps):
+                            print("Invalid selection of camp.")
+                            return
+                    except ValueError:
+                        print("Please enter a valid number.")
+                        return
+
+                    camp = Camp.all_camps[choice - 1]
+                    start = datetime.strptime(camp.start_date, "%Y-%m-%d")
+                    end = datetime.strptime(camp.end_date, "%Y-%m-%d")
+                    length = (end - start).days + 1
+                    rate = int(camp.pay_rate)
+                    money_earned = length * rate
+                    print(f"\nThe camps lasts for {length} day/days & payment rate per day is £{camp.pay_rate}"
+                          f"\nEarnings for {camp.name}: £{money_earned}")
+
+                money_earned_per_camp()
+
+            if choice == 4:
+                def total_money_earned():
+                    from camp_class import read_from_file, Camp
+                    from logistics_coordinator_features import set_pay_rate, Camp
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    total = 0
+                    for camp in Camp.all_camps:
+                        # Convert dates
+                        start = datetime.strptime(camp.start_date, "%Y-%m-%d")
+                        end = datetime.strptime(camp.end_date, "%Y-%m-%d")
+                        length = (end - start).days + 1
+
+                        if not str(camp.pay_rate).isdigit():
+                            print(f"{camp.name}: A pay rate has not been set!")
+                            continue
+
+                        rate = int(camp.pay_rate)
+                        money_earned = length * rate
+                        total += money_earned
+
+                    print(f"\nTotal money earned across all the camps is: £{total}")
+                total_money_earned()
+
 
         elif choice == 6:
             break
