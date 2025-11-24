@@ -960,17 +960,114 @@ def scout_leader_menu(leader_username):
                  print(f"The food assigned per camper is {food_per_camper}")
              assign_food_per_camper()
 
-        #print('\n[NOT IMPLENENTED YET]')
-
         elif choice == 4:
-            # TODO
-            print('\n[NOT IMPLENENTED YET]')
-
-
+            pass
 
         elif choice == 5:
-            # TODO
-            print('\n[NOT IMPLENENTED YET]')
+            print('\nChoose [1] to See Engagement Score'
+                  '\nChoose [2] to See Details for all Existing Camps'
+                  '\nChoose [3] to See Money a Specific Camp Earned'
+                  '\nChoose [4] to See Total Money Earned')
+            choice = get_int('Input your option: ', 1, 4)
+
+            if choice == 1:
+
+                from logistics_coordinator_features import _engagement_score
+                from camp_class import read_from_file, Camp
+
+                def print_engagement_score():
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    try:
+                        choice = int(input("\nEnter the camp number that you want to see the Engagement Score of: "))
+                        if choice < 1 or choice > len(Camp.all_camps):
+                            print("Invalid selection of camp.")
+                            return
+                    except ValueError:
+                        print("Please enter a valid number.")
+                        return
+
+                    camp = Camp.all_camps[choice - 1]
+                    eng_score = _engagement_score(camp)
+
+                    print(f"\nEngagement Score for {camp.name}: {eng_score}")
+
+                print_engagement_score()
+                '''Function to see the engagement score for a specific camp. 
+All existing camps will be printed & the user can pick the camp they would like to see the score of. 
+If they pick a camp that doesn’t exist, there will be an error message and they can go through the process again.'''
+
+            if choice == 2:
+                def info_from_json():
+                    with open('camp_data.json', 'r') as file:
+                        data = json.load(file)
+                        for camp in data:
+                            print(camp)
+
+                info_from_json()
+
+            if choice == 3:
+                def money_earned_per_camp():
+                    from camp_class import read_from_file, Camp
+                    from logistics_coordinator_features import set_pay_rate, Camp
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    try:
+                        choice = int(input("\nEnter the camp number that you want to see the Earnings of: "))
+                        if choice < 1 or choice > len(Camp.all_camps):
+                            print("Invalid selection of camp.")
+                            return
+                    except ValueError:
+                        print("Please enter a valid number.")
+                        return
+
+                    camp = Camp.all_camps[choice - 1]
+                    start = datetime.strptime(camp.start_date, "%Y-%m-%d")
+                    end = datetime.strptime(camp.end_date, "%Y-%m-%d")
+                    length = (end - start).days + 1
+                    rate = int(camp.pay_rate)
+                    money_earned = length * rate
+                    print(f"\nThe camps lasts for {length} day/days & payment rate per day is £{camp.pay_rate}"
+                          f"\nEarnings for {camp.name}: £{money_earned}")
+
+                money_earned_per_camp()
+
+            if choice == 4:
+                def total_money_earned():
+                    from camp_class import read_from_file, Camp
+                    from logistics_coordinator_features import set_pay_rate, Camp
+                    read_from_file()
+
+                    print("\n--- Existing Camps ---")
+                    for i, camp in enumerate(Camp.all_camps, start=1):
+                        print(f"{i}. {camp.name}")
+
+                    total = 0
+                    for camp in Camp.all_camps:
+                        # Convert dates
+                        start = datetime.strptime(camp.start_date, "%Y-%m-%d")
+                        end = datetime.strptime(camp.end_date, "%Y-%m-%d")
+                        length = (end - start).days + 1
+
+                        if not str(camp.pay_rate).isdigit():
+                            print(f"{camp.name}: A pay rate has not been set!")
+                            continue
+
+                        rate = int(camp.pay_rate)
+                        money_earned = length * rate
+                        total += money_earned
+
+                    print(f"\nTotal money earned across all the camps is: £{total}")
+                total_money_earned()
+
 
         elif choice == 6:
             break
