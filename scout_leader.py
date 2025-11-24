@@ -3,7 +3,7 @@ import json
 import csv
 from datetime import datetime
 
-from camp_main import get_int
+from utils import get_int
 
 from logistics_coordinator_features import (
     top_up_food,
@@ -15,10 +15,6 @@ from logistics_coordinator_features import (
     plot_leaders_per_camp,
     plot_engagement_scores,
     set_pay_rate,
-    get_dates,
-    delete_camp,
-    edit_camp,
-    create_camp,
 )
 
 from camp_class import Camp, save_to_file, read_from_file
