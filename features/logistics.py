@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from camp_ops import create_camp, edit_camp, delete_camp, get_dates
 from camp_class import Camp, save_to_file, read_from_file
-from notifications import add_notification
+from features.notifications import add_notification
 from utils import get_int
 
 

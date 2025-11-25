@@ -11,7 +11,7 @@ from features.logistics import (
     plot_engagement_scores,
     set_pay_rate,
 )
-from notifications import load_notifications
+from features.notifications import load_notifications
 from utils import get_int
 
 
