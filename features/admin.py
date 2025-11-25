@@ -255,19 +255,16 @@ def enable_user():
             n += 1
             print(f"[{n}] {disabled_username}")
 
-        option = int(input("\nInput your option: "))
-        if 1 <= option <= len(disabled_usernames):
-            username_to_enable = disabled_usernames[option-1]
-            # verify the username still exists in users
-            existing_names = set()
-            existing_names.add(users['admin']['username'])
-            existing_names.update(u['username'] for u in users['scout leader'])
-            existing_names.update(u['username'] for u in users['logistics coordinator'])
-            if username_to_enable not in existing_names:
-                print(f"\nUser '{username_to_enable}' no longer exists in users; cannot enable.")
-                continue
-            enable_login(username_to_enable)
-            print(f"\n User '{username_to_enable}' enabled successfully!")
-            break
-        else:
-            print('\nInvalid input. Please try again. ')
+        option = get_int("\nInput your option: ", 1, len(disabled_usernames))
+        username_to_enable = disabled_usernames[option-1]
+        # verify the username still exists in users
+        existing_names = set()
+        existing_names.add(users['admin']['username'])
+        existing_names.update(u['username'] for u in users['scout leader'])
+        existing_names.update(u['username'] for u in users['logistics coordinator'])
+        if username_to_enable not in existing_names:
+            print(f"\nUser '{username_to_enable}' no longer exists in users; cannot enable.")
+            continue
+        enable_login(username_to_enable)
+        print(f"\n User '{username_to_enable}' enabled successfully!")
+        break
