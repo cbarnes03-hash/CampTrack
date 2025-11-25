@@ -56,7 +56,8 @@ def run(leader_username):
                 total_money_earned()
 
         elif choice == 6:
-            messaging_menu(leader_username, {'admin': {}, 'scout leader': [], 'logistics coordinator': []})
+            from user_logins import users
+            messaging_menu(leader_username, users)
 
         elif choice == 7:
             print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')

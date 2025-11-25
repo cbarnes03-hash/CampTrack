@@ -18,8 +18,9 @@ def run():
               '\nChoose [4] to Delete a user'
               '\nChoose [5] to Disable a user'
               '\nChoose [6] to Enable a user'
-              '\nChoose [7] to Logout')
-        choice = get_int("Input your option: ", 1, 7)
+              '\nChoose [7] to Messaging'
+              '\nChoose [8] to Logout')
+        choice = get_int("Input your option: ", 1, 8)
 
         if choice == 1:
             list_users()
@@ -40,6 +41,11 @@ def run():
             enable_user()
 
         elif choice == 7:
+            from messaging import messaging_menu
+            from user_logins import users
+            messaging_menu("admin", users)
+
+        elif choice == 8:
             print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
             print('\nWelcome to CampTrack! Please select a user.')
             return
