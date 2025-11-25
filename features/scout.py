@@ -119,6 +119,7 @@ def assign_food_amount():
     if camper_count == 0:
         print(f"\n{camp.name} has no campers assigned yet. Add campers before assigning food per camper.")
         return
+    print(f"\n{camp.name} has {camper_count} campers assigned.")
 
     food_per_camper = get_int("Enter daily food units per camper: ", min_val=0)
     save_food_requirement(camp.name, food_per_camper)
@@ -133,23 +134,91 @@ def record_daily_activity():
     choice = get_int("\nSelect a camp to add entry to: ", 1, len(camps))
     camp = camps[choice - 1]
 
-    print(f"\nAdding the daily entry to: {camp.name}")
+    print(f"\nAdding activities/notes for: {camp.name}")
 
     while True:
-        new_date = input("Enter the date(or type n to exit):")
+        new_date = input("Enter the date (YYYY-MM-DD) or type n to exit: ").strip()
         if new_date.lower() == "n":
             break
 
-        new_note = input("Enter the diary entry for today")
+        activity_name = input("Activity name (optional, press enter to skip): ").strip()
+        activity_time = input("Time (optional, e.g. 14:00): ").strip()
+        notes = input("Enter notes/outcomes/incidents for this entry: ").strip()
 
-        camp.note_daily_record(new_date, new_note)
+        # optional food used for this activity
+        food_used = input("Food units used for this activity (optional number): ").strip()
+        food_units = None
+        if food_used.isdigit():
+            food_units = int(food_used)
+
+        entry = {
+            "activity": activity_name or "unspecified",
+            "time": activity_time,
+            "notes": notes,
+        }
+        if food_units is not None:
+            entry["food_used"] = food_units
+
+        # store under activities by date
+        if new_date not in camp.activities:
+            camp.activities[new_date] = []
+        camp.activities[new_date].append(entry)
+
+        # also keep a simple daily record note
+        camp.note_daily_record(new_date, notes)
+
+        # track food usage per day if provided
+        if food_units is not None:
+            if new_date not in camp.daily_food_usage:
+                camp.daily_food_usage[new_date] = 0
+            camp.daily_food_usage[new_date] += food_units
+
         save_to_file()
 
-        view_choice = input("Your entry has been added. Would you like to view it? Type 'y' or 'n': ")
-        if view_choice.lower() == "y":
-            print(camp.daily_records)
+        view_choice = input("Entry added. View today's entries? (y/n): ").strip().lower()
+        if view_choice == "y":
+            print(camp.activities.get(new_date, []))
         else:
-            break
+            continue
+
+
+def view_activity_stats():
+    camps = read_from_file()
+    if not camps:
+        print("\nNo camps exist yet.")
+        return
+
+    print("\n--- Existing Camps ---")
+    for i, camp in enumerate(camps, start=1):
+        print(f"{i}. {camp.name}")
+    choice = get_int("\nSelect a camp to view activity stats: ", 1, len(camps))
+    camp = camps[choice - 1]
+
+    if not camp.activities:
+        print(f"\nNo activities recorded for {camp.name}.")
+        return
+
+    total_entries = sum(len(entries) for entries in camp.activities.values())
+    print(f"\nActivity summary for {camp.name}:")
+    print(f"Total activity entries: {total_entries}")
+    for date, entries in sorted(camp.activities.items()):
+        print(f"{date}: {len(entries)} activit(ies)")
+        for entry in entries:
+            desc = entry.get('activity', 'unspecified')
+            time = entry.get('time')
+            notes = entry.get('notes', '')
+            food = entry.get('food_used')
+            extra = []
+            if time:
+                extra.append(f"@ {time}")
+            if food is not None:
+                extra.append(f"food used: {food}")
+            extra_txt = f" ({', '.join(extra)})" if extra else ""
+            print(f"  - {desc}{extra_txt}: {notes}")
+
+    if camp.daily_food_usage:
+        total_food = sum(camp.daily_food_usage.values())
+        print(f"\nTotal food used across recorded activities: {total_food} units")
 
 
 def print_engagement_score():
@@ -205,7 +274,7 @@ def assign_camp_to_supervise(leader_username):
         camps = read_from_file()
         if camps == []:
             print('\nNo camps exist yet. Ask the logistics coordinator to create one.')
-            continue
+            return
 
         print('\nAvaliable Camps: ')
         n = 0

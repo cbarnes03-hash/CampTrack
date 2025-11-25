@@ -40,8 +40,9 @@ def run(leader_username):
             print('\nChoose [1] to See Engagement Score'
                   '\nChoose [2] to See Details for all Existing Camps'
                   '\nChoose [3] to See Money a Specific Camp Earned'
-                  '\nChoose [4] to See Total Money Earned')
-            choice = get_int('Input your option: ', 1, 4)
+                  '\nChoose [4] to See Total Money Earned'
+                  '\nChoose [5] to See Activity Summary')
+            choice = get_int('Input your option: ', 1, 5)
 
             if choice == 1:
                 print_engagement_score()
@@ -54,6 +55,9 @@ def run(leader_username):
 
             if choice == 4:
                 total_money_earned()
+
+            if choice == 5:
+                view_activity_stats()
 
         elif choice == 6:
             from user_logins import users
