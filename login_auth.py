@@ -1,13 +1,8 @@
 from menus.admin_menu import run as admin_menu
 from menus.logistics_menu import run as logistics_coordinator_menu
 from menus.scout_menu import run as scout_leader_menu
-from user_logins import users, load_logins, check_disabled_logins
+from user_logins import users, check_disabled_logins
 from utils import get_int
-
-print('╔═══════════════╗\n║   CampTrack   ║\n╚═══════════════╝')
-print('\nWelcome to CampTrack! Please select a user.')
-
-load_logins()
 
 
 def login_admin():
@@ -64,18 +59,19 @@ def login_logisticscoordinator():
                 print('\nInvalid username or password.\n')
 
 
-while True:
-    option = get_int(
-        "\nChoose [1] for Application Administrator\n"
-        "Choose [2] for Scout Leader\n"
-        "Choose [3] for Logistics Coordinator\n\n"
-        "Input your option: ",
-        1, 3
-    )
+def login_loop():
+    while True:
+        option = get_int(
+            "\nChoose [1] for Application Administrator\n"
+            "Choose [2] for Scout Leader\n"
+            "Choose [3] for Logistics Coordinator\n\n"
+            "Input your option: ",
+            1, 3
+        )
 
-    if option == 1:
-        login_admin()
-    elif option == 2:
-        login_scoutleader()
-    elif option == 3:
-        login_logisticscoordinator()
+        if option == 1:
+            login_admin()
+        elif option == 2:
+            login_scoutleader()
+        elif option == 3:
+            login_logisticscoordinator()
