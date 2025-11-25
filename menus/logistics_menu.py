@@ -1,8 +1,6 @@
-import json
-
 from messaging import messaging_menu
 from camp_ops import create_camp, edit_camp, delete_camp
-from logistics_coordinator_features import (
+from features.logistics import (
     top_up_food,
     set_food_stock,
     check_food_shortage,

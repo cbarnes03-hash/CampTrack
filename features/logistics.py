@@ -1,11 +1,11 @@
-from camp_class import Camp, save_to_file, read_from_file
-from camp_ops import create_camp, edit_camp, delete_camp, get_dates
 from datetime import datetime, timedelta
-import pandas as pd
 import json
+import pandas as pd
 import matplotlib.pyplot as plt
+from camp_ops import create_camp, edit_camp, delete_camp, get_dates
+from camp_class import Camp, save_to_file, read_from_file
+from notifications import add_notification
 from utils import get_int
-from notifications import add_notification, load_notifications
 
 
 def _engagement_score(camp):
@@ -14,12 +14,7 @@ def _engagement_score(camp):
     record_entries = sum(len(entries) for entries in camp.daily_records.values())
     return activity_events + record_entries
 
-#The function :counts how many activities a camp has, counts how many notes a camp has,
-# adds them together, returns that number as an “engagement score”
-# It’s a quick indicator of how involved and active a camp is.
 
-
-#Tops up the food stock
 def top_up_food(camp_name, amount):
     if not isinstance(amount, int) or amount < 0:
         print("Top-up amount must be a non-negative whole number.")
@@ -33,7 +28,7 @@ def top_up_food(camp_name, amount):
             return
     print("Camp not found.")
 
-#Sets the daily food stock 
+
 def set_food_stock(camp_name, new_stock):
     if not isinstance(new_stock, int) or new_stock < 0:
         print("Food stock must be a non-negative whole number.")
@@ -47,13 +42,58 @@ def set_food_stock(camp_name, new_stock):
             return
     print("Camp not found.")
 
+#Shortage Notifications
+def load_food_requirement(camp_name):
+    try:
+        with open("food_requirements.json", "r") as file:
+            data = json.load(file)
+        return data.get(camp_name)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def check_food_shortage(camp_name):
+    food_per_camper = load_food_requirement(camp_name)
+    if not isinstance(food_per_camper, int) or food_per_camper < 0:
+        print("Food per camper must be a non-negative whole number.")
+        return
+    camps = read_from_file()
+    for camp in camps:
+        if camp.name == camp_name:
+            try:
+                start = datetime.strptime(camp.start_date, "%Y-%m-%d")
+                end = datetime.strptime(camp.end_date, "%Y-%m-%d")
+                camp_duration_days = max((end - start).days + 1, 1)
+            except (TypeError, ValueError):
+                camp_duration_days = 1
+
+            camper_count = len(camp.campers)
+
+            total_available = camp.food_stock * camp_duration_days
+            required_amount = camper_count * food_per_camper * camp_duration_days
+            print(f"{camp.name} requires {required_amount} units for {camper_count} campers over {camp_duration_days} day(s).")
+
+            if total_available < required_amount:
+                add_notification(f"Food shortage at {camp_name}! Only {camp.food_stock} units left but {required_amount} needed.")
+            else:
+                print("Food stock is sufficient.")
+            return
+    print("Camp not found.")
+#check_food_shortage takes food_per_camper, validates it, computes the total requirement (campers × per-day × duration), 
+# prints that forecast, and either logs a detailed shortage notification or confirms stock sufficiency. 
+# It also guards against malformed dates while calculating the duration. 
+# Also, adds +1 so a camp starting and ending on the same day = 1 day.  
+# and if dates are invalid camp_duration_days = 1. 
+# #Scout Leaders assign food required per camper per day and coordinator checks shortages
+ #adjust this function later to calculate required amount automatically - once leader features are ready
+
+
 #Shows a dashboard using Pandas
 def dashboard():
     camps = read_from_file()
     if not camps:
         print("\nNo camps found.")
         return None
-
 
     total_campers = sum(len(camp.campers) for camp in camps)
     total_leaders = sum(len(camp.scout_leaders) for camp in camps)
@@ -95,7 +135,6 @@ def dashboard():
         print(f"{label}: {value}")
 
     return df
-
 
 # Visualisations
 def _ensure_dataframe(df):
@@ -146,52 +185,7 @@ def plot_engagement_scores(df=None):
     plt.tight_layout()
     plt.show()
 
-#Shortage Notifications
-def load_food_requirement(camp_name):
-    try:
-        with open("food_requirements.json", "r") as file:
-            data = json.load(file)
-        return data.get(camp_name)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
 
-def check_food_shortage(camp_name):
-    food_per_camper = load_food_requirement(camp_name)
-    if not isinstance(food_per_camper, int) or food_per_camper < 0:
-        print("Food per camper must be a non-negative whole number.")
-        return
-    camps = read_from_file()
-    for camp in camps:
-        if camp.name == camp_name:
-            try:
-                start = datetime.strptime(camp.start_date, "%Y-%m-%d")
-                end = datetime.strptime(camp.end_date, "%Y-%m-%d")
-                camp_duration_days = max((end - start).days + 1, 1)
-            except (TypeError, ValueError):
-                camp_duration_days = 1
-            
-
-            camper_count = len(camp.campers)
-
-            total_available = camp.food_stock * camp_duration_days
-            required_amount = camper_count * food_per_camper * camp_duration_days
-            print(f"{camp.name} requires {required_amount} units for {camper_count} campers over {camp_duration_days} day(s).")
-            
-            if total_available < required_amount:
-                add_notification(f"Food shortage at {camp_name}! Only {camp.food_stock} units left but {required_amount} needed.")
-            else:
-                print("Food stock is sufficient.")
-            return
-    print("Camp not found.")
-#check_food_shortage takes food_per_camper, validates it, computes the total requirement (campers × per-day × duration), 
-# prints that forecast, and either logs a detailed shortage notification or confirms stock sufficiency. 
-# It also guards against malformed dates while calculating the duration. 
-# Also, adds +1 so a camp starting and ending on the same day = 1 day.  
-# and if dates are invalid camp_duration_days = 1. 
-# #Scout Leaders assign food required per camper per day and coordinator checks shortages
- #adjust this function later to calculate required amount automatically - once leader features are ready
-
-#Sets Daily Pay Rate 
 def set_pay_rate(camp_name, rate):
     if not isinstance(rate, int) or rate < 0:
         print("Pay rate must be a non-negative whole number.")
