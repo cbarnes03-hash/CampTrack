@@ -22,6 +22,11 @@ Start the app:
 python app.py
 ```
 
+Default accounts (empty passwords):
+- admin: `admin`
+- logistics coordinator: `coordinator`
+- scout leaders: `leader1`, `leader2`, `leader3`, `leader4`
+
 ## Data files
 
 Runtime data is stored under `data/`:
