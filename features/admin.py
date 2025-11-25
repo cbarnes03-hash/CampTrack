@@ -32,8 +32,29 @@ def add_user():
         else:
             print('Invalid input. Please try again.')
 
-    new_username = input('Enter username: ')
-    new_password = input('Enter password: ')
+    while True:
+        new_username = input('Enter username: ').strip()
+        if new_username == "":
+            print("Username cannot be blank.")
+            continue
+        # check duplicates
+        existing_names = []
+        existing_names.append(users['admin']['username'])
+        existing_names.extend(u['username'] for u in users['scout leader'])
+        existing_names.extend(u['username'] for u in users['logistics coordinator'])
+        if new_username in existing_names:
+            print("Username already exists. Please choose another.")
+            continue
+        break
+
+    while True:
+        new_password = input('Enter password (blank allowed): ')
+        # allow blank, but confirm
+        confirm = input('Confirm password (press Enter to accept): ')
+        if new_password != confirm:
+            print("Passwords do not match. Try again.")
+            continue
+        break
 
     if new_role == 'admin':
         users['admin'] = {'username': new_username, 'password': new_password}
