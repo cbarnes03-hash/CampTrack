@@ -93,11 +93,11 @@ def check_food_shortage(camp_name):
 
 
 #Shows a dashboard using Pandas
-def dashboard():
+def build_dashboard_data():
+    """Return (df, summary) for camps without printing/plotting."""
     camps = read_from_file()
     if not camps:
-        print("\nNo camps found.")
-        return None
+        return None, None
 
     total_campers = sum(len(camp.campers) for camp in camps)
     total_leaders = sum(len(camp.scout_leaders) for camp in camps)
@@ -125,16 +125,25 @@ def dashboard():
         })
 
     df = pd.DataFrame(data)
-    print("\n--- Camp Dashboard ---")
-    print(df.to_string(index=False))
-
-    print("\n--- Summary ---")
     summary = {
         "Total Campers": total_campers,
         "Total Leaders": total_leaders,
         "Average Engagement": round(df["Engagement Score"].mean(), 2) if not df.empty else 0,
         "Average Leader/Camper Ratio": round(df["Leader/Camper Ratio"].mean(), 2) if not df.empty else 0
     }
+    return df, summary
+
+
+def dashboard():
+    df, summary = build_dashboard_data()
+    if df is None:
+        print("\nNo camps found.")
+        return None
+
+    print("\n--- Camp Dashboard ---")
+    print(df.to_string(index=False))
+
+    print("\n--- Summary ---")
     for label, value in summary.items():
         print(f"{label}: {value}")
 
@@ -151,43 +160,51 @@ def _ensure_dataframe(df):
     return df
 
 
-def plot_food_stock(df=None):
-    df = _ensure_dataframe(df or dashboard())
+def plot_food_stock(df=None, show=True):
+    df = _ensure_dataframe(df or build_dashboard_data()[0])
     if df is None:
         return
-    df.plot(kind="bar", x="Camp", y="Food Stock", title="Food Stock per Camp")
-    plt.ylabel("Units")
+    ax = df.plot(kind="bar", x="Camp", y="Food Stock", title="Food Stock per Camp")
+    ax.set_ylabel("Units")
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return ax
 
 
-def plot_camper_distribution(df=None):
-    df = _ensure_dataframe(df or dashboard())
+def plot_camper_distribution(df=None, show=True):
+    df = _ensure_dataframe(df or build_dashboard_data()[0])
     if df is None:
         return
-    df.set_index("Camp")["Campers"].plot(kind="pie", autopct="%1.1f%%", title="Camper Distribution", ylabel="")
+    ax = df.set_index("Camp")["Campers"].plot(kind="pie", autopct="%1.1f%%", title="Camper Distribution", ylabel="")
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return ax
 
 
-def plot_leaders_per_camp(df=None):
-    df = _ensure_dataframe(df or dashboard())
+def plot_leaders_per_camp(df=None, show=True):
+    df = _ensure_dataframe(df or build_dashboard_data()[0])
     if df is None:
         return
-    df.plot(kind="bar", x="Camp", y="Leaders", title="Leaders per Camp", color="orange")
-    plt.ylabel("Leaders")
+    ax = df.plot(kind="bar", x="Camp", y="Leaders", title="Leaders per Camp", color="orange")
+    ax.set_ylabel("Leaders")
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return ax
 
 
-def plot_engagement_scores(df=None):
-    df = _ensure_dataframe(df or dashboard())
+def plot_engagement_scores(df=None, show=True):
+    df = _ensure_dataframe(df or build_dashboard_data()[0])
     if df is None:
         return
-    df.plot(kind="bar", x="Camp", y="Engagement Score", title="Engagement Score per Camp", color="green")
-    plt.ylabel("Engagement Score")
+    ax = df.plot(kind="bar", x="Camp", y="Engagement Score", title="Engagement Score per Camp", color="green")
+    ax.set_ylabel("Engagement Score")
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return ax
 
 
 def set_pay_rate(camp_name, rate):
