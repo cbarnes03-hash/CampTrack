@@ -90,10 +90,15 @@ class AdminWindow(tk.Frame):
         tk.Button(self, text="Delete User", command=delete_user).pack(fill="x")
         tk.Button(self, text="Disable User", command=disable_user).pack(fill="x")
         tk.Button(self, text="Enable User", command=enable_user).pack(fill="x")
+        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
     def list_users_ui(self):
         # reuse CLI print for now
         list_users()
+
+    def logout(self):
+        self.master.destroy()
+        launch_login()
 
 
 class LogisticsWindow(tk.Frame):
@@ -109,6 +114,7 @@ class LogisticsWindow(tk.Frame):
         tk.Button(self, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x")
         tk.Button(self, text="View Dashboard", command=self.dashboard_ui).pack(fill="x")
         tk.Button(self, text="Notifications", command=self.notifications_ui).pack(fill="x")
+        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
     def set_food_stock_ui(self):
         camp = simple_prompt("Camp name")
@@ -174,6 +180,10 @@ class LogisticsWindow(tk.Frame):
         notes = load_notifications()
         messagebox.showinfo("Notifications", "\n".join(str(n) for n in notes) if notes else "No notifications")
 
+    def logout(self):
+        self.master.destroy()
+        launch_login()
+
 
 class ScoutWindow(tk.Frame):
     def __init__(self, master, username):
@@ -186,6 +196,7 @@ class ScoutWindow(tk.Frame):
         tk.Button(self, text="Record Activity", command=self.record_activity_ui).pack(fill="x")
         tk.Button(self, text="View Stats", command=self.stats_ui).pack(fill="x")
         tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
+        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
     def select_camps_ui(self):
         camps = read_from_file()
@@ -299,6 +310,9 @@ class ScoutWindow(tk.Frame):
                 messagebox.showinfo("Sent", f"Message sent to {to}")
         tk.Button(convo_win, text="Send", command=send).pack(pady=5)
 
+    def logout(self):
+        self.master.destroy()
+        launch_login()
 
 def simple_prompt(prompt):
     return tk.simpledialog.askstring("Input", prompt)
@@ -311,7 +325,10 @@ def simple_prompt_int(prompt):
 
 if __name__ == "__main__":
     load_logins()
-    root = tk.Tk()
-    root.title("CampTrack Login")
-    LoginWindow(root)
-    root.mainloop()
+    def launch_login():
+        root = tk.Tk()
+        root.title("CampTrack Login")
+        LoginWindow(root)
+        root.mainloop()
+
+    launch_login()
