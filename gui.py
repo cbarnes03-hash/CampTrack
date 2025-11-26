@@ -72,7 +72,7 @@ class LoginWindow(tk.Frame):
             app = tk.Tk()
             app.title(f"CampTrack - {role}")
             if role == "admin":
-                AdminWindow(app)
+                AdminWindow(app, uname)
             elif role == "scout leader":
                 ScoutWindow(app, uname)
             elif role == "logistics coordinator":
@@ -83,15 +83,18 @@ class LoginWindow(tk.Frame):
 
 
 class AdminWindow(tk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, username):
         super().__init__(master)
+        self.username = username
         self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Button(self, text="List Users", command=self.list_users_ui).pack(fill="x")
-        tk.Button(self, text="Add User", command=self.add_user_ui).pack(fill="x")
-        tk.Button(self, text="Edit User Password", command=self.edit_user_password_ui).pack(fill="x")
-        tk.Button(self, text="Delete User", command=self.delete_user_ui).pack(fill="x")
-        tk.Button(self, text="Disable User", command=self.disable_user_ui).pack(fill="x")
-        tk.Button(self, text="Enable User", command=self.enable_user_ui).pack(fill="x")
+        tk.Label(self, text="Administrator Menu", font=("Arial", 14, "bold")).pack(pady=5)
+        tk.Button(self, text="View all users", command=self.list_users_ui).pack(fill="x")
+        tk.Button(self, text="Add a new user", command=self.add_user_ui).pack(fill="x")
+        tk.Button(self, text="Edit a user's password", command=self.edit_user_password_ui).pack(fill="x")
+        tk.Button(self, text="Delete a user", command=self.delete_user_ui).pack(fill="x")
+        tk.Button(self, text="Disable a user", command=self.disable_user_ui).pack(fill="x")
+        tk.Button(self, text="Enable a user", command=self.enable_user_ui).pack(fill="x")
+        tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
         tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
     def list_users_ui(self):
@@ -233,6 +236,30 @@ class AdminWindow(tk.Frame):
             return
         enable_login(target_user)
         messagebox.showinfo("Success", f"Enabled {target_user}.")
+
+    def messaging_ui(self):
+        convo_win = tk.Toplevel(self)
+        convo_win.title("Messaging")
+        tk.Label(convo_win, text="Conversations").pack()
+        listbox = tk.Listbox(convo_win)
+        listbox.pack(fill="both", expand=True)
+        partners = get_conversations_for_user(self.username)
+        for p in partners:
+            listbox.insert("end", p)
+        tk.Label(convo_win, text="Recipient:").pack()
+        recipient_entry = tk.Entry(convo_win)
+        recipient_entry.pack()
+        tk.Label(convo_win, text="Message:").pack()
+        message_entry = tk.Entry(convo_win, width=50)
+        message_entry.pack()
+
+        def send():
+            to = recipient_entry.get().strip()
+            msg = message_entry.get().strip()
+            if to and msg:
+                send_message(self.username, to, msg)
+                messagebox.showinfo("Sent", f"Message sent to {to}")
+        tk.Button(convo_win, text="Send", command=send).pack(pady=5)
 
     def logout(self):
         self.master.destroy()
