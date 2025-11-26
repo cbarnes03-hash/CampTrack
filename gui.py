@@ -12,6 +12,10 @@ from features.logistics import (
     set_pay_rate_data,
     compute_food_shortage,
     build_dashboard_data,
+    plot_food_stock,
+    plot_camper_distribution,
+    plot_leaders_per_camp,
+    plot_engagement_scores,
 )
 from features.notifications import load_notifications
 from features.scout import (
@@ -72,7 +76,7 @@ class LoginWindow(tk.Frame):
             elif role == "scout leader":
                 ScoutWindow(app, uname)
             elif role == "logistics coordinator":
-                LogisticsWindow(app)
+                LogisticsWindow(app, uname)
             app.mainloop()
         else:
             messagebox.showerror("Login failed", "Invalid username or password.")
@@ -236,22 +240,36 @@ class AdminWindow(tk.Frame):
 
 
 class LogisticsWindow(tk.Frame):
-    def __init__(self, master):
+    def __init__(self, master, username):
         super().__init__(master)
+        self.username = username
         self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Button(self, text="Create Camp", command=self.create_camp_ui).pack(fill="x")
-        tk.Button(self, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x")
-        tk.Button(self, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x")
-        tk.Button(self, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x")
-        tk.Button(self, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x")
-        tk.Button(self, text="Set Pay Rate", command=self.set_pay_rate_ui).pack(fill="x")
-        tk.Button(self, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x")
-        tk.Button(self, text="View Dashboard", command=self.dashboard_ui).pack(fill="x")
-        tk.Button(self, text="Notifications", command=self.notifications_ui).pack(fill="x")
+        tk.Label(self, text="Logisitics Coordiator Menu", font=("Arial", 14, "bold")).pack(pady=5)
+        tk.Button(self, text="Manage and Create Camps", command=self.manage_camps_menu).pack(fill="x")
+        tk.Button(self, text="Manage Food Allocation", command=self.food_allocation_menu).pack(fill="x")
+        tk.Button(self, text="View Camp Dashboard", command=self.dashboard_ui).pack(fill="x")
+        tk.Button(self, text="Visualise Camp Data", command=self.visualise_menu).pack(fill="x")
+        tk.Button(self, text="Access Financial Settings", command=self.financial_settings_ui).pack(fill="x")
+        tk.Button(self, text="Access Notifications", command=self.notifications_ui).pack(fill="x")
+        tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
         tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
+    def manage_camps_menu(self):
+        top = tk.Toplevel(self)
+        top.title("Manage and Create Camps")
+        tk.Button(top, text="Create Camp", command=self.create_camp_ui).pack(fill="x")
+        tk.Button(top, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x")
+        tk.Button(top, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x")
+
+    def food_allocation_menu(self):
+        top = tk.Toplevel(self)
+        top.title("Manage Food Allocation")
+        tk.Button(top, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x")
+        tk.Button(top, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x")
+        tk.Button(top, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x")
+
     def set_food_stock_ui(self):
-        camp = simple_prompt("Camp name")
+        camp = self.choose_camp_name()
         if not camp:
             return
         val = simple_prompt_int("New daily stock")
@@ -261,7 +279,7 @@ class LogisticsWindow(tk.Frame):
         messagebox.showinfo("Result", res.get("status"))
 
     def top_up_food_ui(self):
-        camp = simple_prompt("Camp name")
+        camp = self.choose_camp_name()
         if not camp:
             return
         val = simple_prompt_int("Amount to add")
@@ -271,7 +289,7 @@ class LogisticsWindow(tk.Frame):
         messagebox.showinfo("Result", res.get("status"))
 
     def set_pay_rate_ui(self):
-        camp = simple_prompt("Camp name")
+        camp = self.choose_camp_name()
         if not camp:
             return
         val = simple_prompt_int("Daily pay rate")
@@ -281,7 +299,7 @@ class LogisticsWindow(tk.Frame):
         messagebox.showinfo("Result", res.get("status"))
 
     def shortage_ui(self):
-        camp = simple_prompt("Camp name")
+        camp = self.choose_camp_name()
         if not camp:
             return
         res = compute_food_shortage(camp)
@@ -313,6 +331,17 @@ class LogisticsWindow(tk.Frame):
     def notifications_ui(self):
         notes = load_notifications()
         messagebox.showinfo("Notifications", "\n".join(str(n) for n in notes) if notes else "No notifications")
+
+    def visualise_menu(self):
+        top = tk.Toplevel(self)
+        top.title("Visualise Camp Data")
+        tk.Button(top, text="Food Stock per Camp", command=plot_food_stock).pack(fill="x")
+        tk.Button(top, text="Camper Distribution", command=plot_camper_distribution).pack(fill="x")
+        tk.Button(top, text="Leaders per Camp", command=plot_leaders_per_camp).pack(fill="x")
+        tk.Button(top, text="Engagement Overview", command=plot_engagement_scores).pack(fill="x")
+
+    def financial_settings_ui(self):
+        self.set_pay_rate_ui()
 
     def create_camp_ui(self):
         name = simple_prompt("Camp name:")
@@ -424,6 +453,40 @@ class LogisticsWindow(tk.Frame):
         Camp.all_camps = camps
         save_to_file()
         messagebox.showinfo("Success", f"Camp '{camp.name}' deleted.")
+    def messaging_ui(self):
+        convo_win = tk.Toplevel(self)
+        convo_win.title("Messaging")
+        tk.Label(convo_win, text="Conversations").pack()
+        listbox = tk.Listbox(convo_win)
+        listbox.pack(fill="both", expand=True)
+        partners = get_conversations_for_user(self.username)
+        for p in partners:
+            listbox.insert("end", p)
+        tk.Label(convo_win, text="Recipient:").pack()
+        recipient_entry = tk.Entry(convo_win)
+        recipient_entry.pack()
+        tk.Label(convo_win, text="Message:").pack()
+        message_entry = tk.Entry(convo_win, width=50)
+        message_entry.pack()
+
+        def send():
+            to = recipient_entry.get().strip()
+            msg = message_entry.get().strip()
+            if to and msg:
+                send_message(self.username, to, msg)
+                messagebox.showinfo("Sent", f"Message sent to {to}")
+        tk.Button(convo_win, text="Send", command=send).pack(pady=5)
+
+    def choose_camp_name(self):
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Camps", "No camps exist.")
+            return None
+        indices = select_camp_dialog("Select a camp", camps, allow_multiple=False)
+        if not indices:
+            return None
+        return camps[indices[0]].name
+
     def logout(self):
         self.master.destroy()
         launch_login()
