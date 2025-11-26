@@ -16,32 +16,50 @@ def _engagement_score(camp):
     return activity_events + record_entries
 
 
-def top_up_food(camp_name, amount):
+def top_up_food_data(camp_name, amount):
     if not isinstance(amount, int) or amount < 0:
-        print("Top-up amount must be a non-negative whole number.")
-        return
+        return {"status": "invalid_amount"}
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
             camp.food_stock += amount
             save_to_file()
-            print(f"Food stock for {camp_name} increased by {amount}.")
-            return
-    print("Camp not found.")
+            return {"status": "ok", "camp_name": camp_name, "amount": amount}
+    return {"status": "camp_not_found"}
 
 
-def set_food_stock(camp_name, new_stock):
+def top_up_food(camp_name, amount):
+    res = top_up_food_data(camp_name, amount)
+    status = res.get("status")
+    if status == "invalid_amount":
+        print("Top-up amount must be a non-negative whole number.")
+    elif status == "camp_not_found":
+        print("Camp not found.")
+    elif status == "ok":
+        print(f"Food stock for {camp_name} increased by {amount}.")
+
+
+def set_food_stock_data(camp_name, new_stock):
     if not isinstance(new_stock, int) or new_stock < 0:
-        print("Food stock must be a non-negative whole number.")
-        return
+        return {"status": "invalid_amount"}
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
             camp.food_stock = new_stock
             save_to_file()
-            print(f"Daily food stock for {camp_name} set to {new_stock}.")
-            return
-    print("Camp not found.")
+            return {"status": "ok", "camp_name": camp_name, "new_stock": new_stock}
+    return {"status": "camp_not_found"}
+
+
+def set_food_stock(camp_name, new_stock):
+    res = set_food_stock_data(camp_name, new_stock)
+    status = res.get("status")
+    if status == "invalid_amount":
+        print("Food stock must be a non-negative whole number.")
+    elif status == "camp_not_found":
+        print("Camp not found.")
+    elif status == "ok":
+        print(f"Daily food stock for {camp_name} set to {new_stock}.")
 
 #Shortage Notifications
 def load_food_requirement(camp_name):
@@ -207,15 +225,24 @@ def plot_engagement_scores(df=None, show=True):
     return ax
 
 
-def set_pay_rate(camp_name, rate):
+def set_pay_rate_data(camp_name, rate):
     if not isinstance(rate, int) or rate < 0:
-        print("Pay rate must be a non-negative whole number.")
-        return
+        return {"status": "invalid_amount"}
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
             camp.pay_rate = rate
             save_to_file()
-            print(f"Pay rate for {camp_name} set to {rate}.")
-            return
-    print("Camp not found.")
+            return {"status": "ok", "camp_name": camp_name, "rate": rate}
+    return {"status": "camp_not_found"}
+
+
+def set_pay_rate(camp_name, rate):
+    res = set_pay_rate_data(camp_name, rate)
+    status = res.get("status")
+    if status == "invalid_amount":
+        print("Pay rate must be a non-negative whole number.")
+    elif status == "camp_not_found":
+        print("Camp not found.")
+    elif status == "ok":
+        print(f"Pay rate for {camp_name} set to {rate}.")
