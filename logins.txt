@@ -1,4 +1,4 @@
-admin,admin2,
+admin,admin,
 scout leader,leader1,
 scout leader,leader2,
 scout leader,leader3,
