@@ -51,6 +51,42 @@ def get_all_usernames(users_dict):
 
     return names
 
+def count_unread_messages(username, other):
+    """
+    Count unread messages sent TO `username`.
+    If from_user is provided, count only messages from that user.
+    """
+    messages = load_messages()
+    if other == None:
+        unread = [
+            msg for msg in messages
+            if msg.get("to") == username and msg.get("read") is False
+        ]
+        return len(unread)
+    else:
+        unread = [
+            msg for msg in messages
+            if msg.get("to") == username
+            and msg.get("from") == other
+            and msg.get("read") is False
+        ]
+    return len(unread)
+        
+        
+
+def mark_conversation_as_read(username, other):
+    """Mark all messages sent to 'username' from 'other' as read."""
+    messages = load_messages()
+    changed = False
+
+    for msg in messages:
+        if msg["from"] == other and msg["to"] == username and msg.get("read") is False:
+            msg["read"] = True
+            changed = True
+
+    if changed:
+        save_messages(messages)
+
 
 # ---------- core chat logic ----------
 
@@ -60,7 +96,8 @@ def send_message(sender, recipient, text):
         "from": sender,
         "to": recipient,
         "text": text,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "read": False
     })
     save_messages(messages)
 
@@ -96,8 +133,12 @@ def get_conversation(username, other):
 
 def messaging_menu(current_user, users_dict):
     """WhatsApp-style CLI chat for a single logged-in user."""
+
     while True:
+        unread_total = count_unread_messages(current_user,other=None)
+
         print("\n--- Messaging ---")
+        print(f"You have {unread_total} unread message(s).")
         print("[1] View conversations")
         print("[2] Start new chat")
         print("[3] Back")
@@ -112,7 +153,13 @@ def messaging_menu(current_user, users_dict):
 
             print("\nYour conversations:")
             for i, other in enumerate(conversations, start=1):
-                print(f"[{i}] {other}")
+                unread = count_unread_messages(current_user,other)
+                if unread > 0:
+                    unread_num = f" ({unread} unread)"
+                else:
+                    unread_num = ""
+                print(f"[{i}] {other}{unread_num}")
+
 
             sel = input("Select a conversation (or press Enter to cancel): ").strip()
             if not sel.isdigit():
@@ -121,6 +168,8 @@ def messaging_menu(current_user, users_dict):
             idx = int(sel)
             if 1 <= idx <= len(conversations):
                 other = conversations[idx - 1]
+
+                # Open chat
                 open_chat(current_user, other)
             else:
                 print("Invalid choice.")
@@ -137,6 +186,7 @@ def messaging_menu(current_user, users_dict):
                 print("Invalid recipient.")
                 continue
 
+
             open_chat(current_user, recipient)
 
         elif choice == "3":
@@ -149,6 +199,7 @@ def messaging_menu(current_user, users_dict):
 def open_chat(current_user, other):
     """Show the conversation with `other` and let user send messages."""
     while True:
+        mark_conversation_as_read(current_user, other)
         print(f"\n--- Chat with {other} ---")
         thread = get_conversation(current_user, other)
 
@@ -176,3 +227,5 @@ def open_chat(current_user, other):
             return
         else:
             print("Invalid choice.")
+
+

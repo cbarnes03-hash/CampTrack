@@ -202,7 +202,7 @@ def get_dates(camp_type):
                 second_date = first_date + timedelta(days=nights)
                 valid = True
             elif camp_type == 3:
-                nights = int(input("\nHow many nights is the camp? "))
+                nights = get_int("\nHow many nights is the camp? ")
                 if nights < 2:
                     print("A multi-day camp must be at least 2 nights.")
                     continue
