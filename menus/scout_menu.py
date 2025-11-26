@@ -1,14 +1,15 @@
 from messaging import messaging_menu
 from utils import get_int
 from features.scout import (
-    assign_camp_to_supervise,
-    bulk_assign_campers,
+    assign_camps_to_leader_ui,
+    bulk_assign_campers_ui,
     assign_food_amount,
     record_daily_activity,
-    print_engagement_score,
+    show_engagement_scores,
     info_from_json,
-    money_earned_per_camp,
-    total_money_earned,
+    show_money_per_camp,
+    show_total_money,
+    view_activity_stats,
 )
 
 
@@ -25,10 +26,10 @@ def run(leader_username):
         choice = get_int('Input your option: ', 1, 7)
 
         if choice == 1:
-            assign_camp_to_supervise(leader_username)
+            assign_camps_to_leader_ui(leader_username)
 
         elif choice == 2:
-            bulk_assign_campers()
+            bulk_assign_campers_ui(leader_username)
 
         elif choice == 3:
             assign_food_amount()
@@ -45,16 +46,16 @@ def run(leader_username):
             choice = get_int('Input your option: ', 1, 5)
 
             if choice == 1:
-                print_engagement_score()
+                show_engagement_scores()
 
             if choice == 2:
                 info_from_json()
 
             if choice == 3:
-                money_earned_per_camp()
+                show_money_per_camp()
 
             if choice == 4:
-                total_money_earned()
+                show_total_money()
 
             if choice == 5:
                 view_activity_stats()
