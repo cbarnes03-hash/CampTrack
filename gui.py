@@ -2,15 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import os
 
-from user_logins import users, load_logins, check_disabled_logins
-from features.admin import (
-    add_user,
-    edit_user_password,
-    delete_user,
-    disable_user,
-    enable_user,
-    list_users,
-)
+from user_logins import users, load_logins, check_disabled_logins, save_logins, disabled_logins, enable_login
+from features.admin import list_users
 from camp_ops import create_camp, edit_camp, delete_camp
 from features.logistics import (
     set_food_stock_data,
@@ -85,16 +78,143 @@ class AdminWindow(tk.Frame):
         super().__init__(master)
         self.pack(padx=10, pady=10, fill="both", expand=True)
         tk.Button(self, text="List Users", command=self.list_users_ui).pack(fill="x")
-        tk.Button(self, text="Add User", command=add_user).pack(fill="x")
-        tk.Button(self, text="Edit User Password", command=edit_user_password).pack(fill="x")
-        tk.Button(self, text="Delete User", command=delete_user).pack(fill="x")
-        tk.Button(self, text="Disable User", command=disable_user).pack(fill="x")
-        tk.Button(self, text="Enable User", command=enable_user).pack(fill="x")
+        tk.Button(self, text="Add User", command=self.add_user_ui).pack(fill="x")
+        tk.Button(self, text="Edit User Password", command=self.edit_user_password_ui).pack(fill="x")
+        tk.Button(self, text="Delete User", command=self.delete_user_ui).pack(fill="x")
+        tk.Button(self, text="Disable User", command=self.disable_user_ui).pack(fill="x")
+        tk.Button(self, text="Enable User", command=self.enable_user_ui).pack(fill="x")
         tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
 
     def list_users_ui(self):
-        # reuse CLI print for now
-        list_users()
+        lines = []
+        for role, role_info in users.items():
+            if role == 'admin':
+                lines.append(f"Role: {role}, Username: {role_info['username']}, Password: {role_info['password']}")
+            else:
+                for user in role_info:
+                    lines.append(f"Role: {role}, Username: {user['username']}, Password: {user['password']}")
+        messagebox.showinfo("Users", "\n".join(lines) if lines else "No users found.")
+
+    def prompt_role(self, allow_admin=False):
+        roles = ["scout leader", "logistics coordinator"]
+        if allow_admin:
+            roles.append("admin")
+        prompt = "Choose role:\n" + "\n".join(f"[{i+1}] {r}" for i, r in enumerate(roles))
+        choice = tk.simpledialog.askinteger("Role", prompt, minvalue=1, maxvalue=len(roles))
+        if choice is None:
+            return None
+        return roles[choice-1]
+
+    def add_user_ui(self):
+        role = self.prompt_role(allow_admin=True)
+        if not role:
+            return
+        while True:
+            username = simple_prompt("Enter username:")
+            if username is None:
+                return
+            username = username.strip()
+            if username == "":
+                messagebox.showerror("Error", "Username cannot be blank.")
+                continue
+            existing = [users['admin']['username']]
+            existing += [u['username'] for u in users['scout leader']]
+            existing += [u['username'] for u in users['logistics coordinator']]
+            if username in existing:
+                messagebox.showerror("Error", "Username already exists.")
+                continue
+            break
+        pwd = simple_prompt("Enter password (blank allowed):")
+        if pwd is None:
+            return
+        if role == "admin":
+            users['admin'] = {'username': username, 'password': pwd}
+        else:
+            users[role].append({'username': username, 'password': pwd})
+        save_logins()
+        messagebox.showinfo("Success", f"Added {role}: {username}")
+
+    def edit_user_password_ui(self):
+        role = self.prompt_role(allow_admin=True)
+        if not role:
+            return
+        if role == "admin":
+            target_user = users['admin']['username']
+        else:
+            names = [u['username'] for u in users[role]]
+            if not names:
+                messagebox.showinfo("Info", f"No users found for role {role}.")
+                return
+            target_user = simple_prompt(f"Enter username to edit ({', '.join(names)}):")
+            if target_user not in names:
+                messagebox.showerror("Error", "User not found.")
+                return
+        new_pwd = simple_prompt(f"Enter new password for {target_user}:")
+        if new_pwd is None:
+            return
+        if role == "admin":
+            users['admin']['password'] = new_pwd
+        else:
+            for u in users[role]:
+                if u['username'] == target_user:
+                    u['password'] = new_pwd
+                    break
+        save_logins()
+        messagebox.showinfo("Success", "Password updated.")
+
+    def delete_user_ui(self):
+        role = self.prompt_role(allow_admin=False)
+        if not role:
+            return
+        names = [u['username'] for u in users[role]]
+        if not names:
+            messagebox.showinfo("Info", f"No users found for role {role}.")
+            return
+        target_user = simple_prompt(f"Enter username to delete ({', '.join(names)}):")
+        if target_user not in names:
+            messagebox.showerror("Error", "User not found.")
+            return
+        users[role] = [u for u in users[role] if u['username'] != target_user]
+        save_logins()
+        messagebox.showinfo("Success", f"Deleted {target_user}.")
+
+    def disable_user_ui(self):
+        names = [users['admin']['username']]
+        names += [u['username'] for u in users['scout leader']]
+        names += [u['username'] for u in users['logistics coordinator']]
+        target_user = simple_prompt(f"Enter username to disable ({', '.join(names)}):")
+        if not target_user or target_user not in names:
+            messagebox.showerror("Error", "User not found.")
+            return
+        disabled_logins(target_user)
+        save_logins()
+        messagebox.showinfo("Success", f"Disabled {target_user}.")
+
+    def enable_user_ui(self):
+        disabled_usernames = []
+        try:
+            with open('disabled_logins.txt', 'r') as file:
+                disabled_login = file.read().strip(',')
+                if disabled_login != "":
+                    disabled_usernames.extend([x for x in disabled_login.split(',') if x])
+        except FileNotFoundError:
+            pass
+        if not disabled_usernames:
+            messagebox.showinfo("Info", "No disabled users.")
+            return
+        target_user = simple_prompt(f"Enter username to enable ({', '.join(disabled_usernames)}):")
+        if not target_user or target_user not in disabled_usernames:
+            messagebox.showerror("Error", "User not found in disabled list.")
+            return
+        # ensure user still exists
+        existing = [users['admin']['username']]
+        existing += [u['username'] for u in users['scout leader']]
+        existing += [u['username'] for u in users['logistics coordinator']]
+        if target_user not in existing:
+            messagebox.showerror("Error", "User no longer exists.")
+            return
+        enable_login(target_user)
+        messagebox.showinfo("Success", f"Enabled {target_user}.")
 
     def logout(self):
         self.master.destroy()
