@@ -71,14 +71,13 @@ def load_food_requirement(camp_name):
         return None
 
 
-def check_food_shortage(camp_name):
+def compute_food_shortage(camp_name):
+    """Pure helper returning status/info about food shortage."""
     food_per_camper = load_food_requirement(camp_name)
     if food_per_camper is None:
-        print("No food requirement set for this camp. Ask the scout leader to set daily food per camper.")
-        return
+        return {"status": "missing_requirement"}
     if not isinstance(food_per_camper, int) or food_per_camper < 0:
-        print("Food per camper must be a non-negative whole number.")
-        return
+        return {"status": "invalid_requirement"}
     camps = read_from_file()
     for camp in camps:
         if camp.name == camp_name:
@@ -93,14 +92,37 @@ def check_food_shortage(camp_name):
 
             total_available = camp.food_stock * camp_duration_days
             required_amount = camper_count * food_per_camper * camp_duration_days
-            print(f"{camp.name} requires {required_amount} units for {camper_count} campers over {camp_duration_days} day(s).")
+            status = "shortage" if total_available < required_amount else "ok"
+            return {
+                "status": status,
+                "required": required_amount,
+                "available": total_available,
+                "camp_name": camp.name,
+                "campers": camper_count,
+                "days": camp_duration_days,
+                "food_per_camper": food_per_camper,
+                "camp_food_stock": camp.food_stock,
+            }
+    return {"status": "camp_not_found"}
 
-            if total_available < required_amount:
-                add_notification(f"Food shortage at {camp_name}! Only {camp.food_stock} units left but {required_amount} needed.")
-            else:
-                print("Food stock is sufficient.")
-            return
-    print("Camp not found.")
+
+def check_food_shortage(camp_name):
+    res = compute_food_shortage(camp_name)
+    status = res.get("status")
+    if status == "missing_requirement":
+        print("No food requirement set for this camp. Ask the scout leader to set daily food per camper.")
+        return
+    if status == "invalid_requirement":
+        print("Food per camper must be a non-negative whole number.")
+        return
+    if status == "camp_not_found":
+        print("Camp not found.")
+        return
+    print(f"{res['camp_name']} requires {res['required']} units for {res['campers']} campers over {res['days']} day(s).")
+    if status == "shortage":
+        add_notification(f"Food shortage at {camp_name}! Only {res['camp_food_stock']} units left but {res['required']} needed.")
+    else:
+        print("Food stock is sufficient.")
 #check_food_shortage takes food_per_camper, validates it, computes the total requirement (campers × per-day × duration), 
 # prints that forecast, and either logs a detailed shortage notification or confirms stock sufficiency. 
 # It also guards against malformed dates while calculating the duration. 

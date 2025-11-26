@@ -162,11 +162,11 @@ def assign_camps_to_leader_ui(leader_username):
     print("\nCurrent Camp Assignments:")
     view_leader_camp_assignments()
 
-        print("\nSelect the camps you wish to supervise. (Use commas to seperate numbers)")
-        selection = input("Input your option(s): ").strip()
-        if selection == "":
-            print("\nNo camps selected.")
-            return
+    print("\nSelect the camps you wish to supervise. (Use commas to seperate numbers)")
+    selection = input("Input your option(s): ").strip()
+    if selection == "":
+        print("\nNo camps selected.")
+        return
 
     try:
         chosen_numbers = [int(i) for i in selection.split(',')]
@@ -187,12 +187,12 @@ def assign_camps_to_leader_ui(leader_username):
     elif res["status"] == "invalid_index":
         print("\nInvalid camp selection.")
     elif res["status"] == "overlap":
-            print("You camps you have selected overlap.\nPlease choose camps that do not overlap.")
-        elif res["status"] == "ok":
-            print(f"{leader_username} has selected these camps to supervise:")
-            for name in res["selected"]:
-                print(name)
-            print("\nYour camp selections have been saved")
+        print("You camps you have selected overlap.\nPlease choose camps that do not overlap.")
+    elif res["status"] == "ok":
+        print(f"{leader_username} has selected these camps to supervise:")
+        for name in res["selected"]:
+            print(name)
+        print("\nYour camp selections have been saved")
 
 
 def save_food_requirement(camp_name, food_per_camper):
