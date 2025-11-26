@@ -32,13 +32,16 @@ def login_scoutleader():
         if check_disabled_logins(ask_username):
             print("This account has been disabled.")
             return
+        matched = False
         for user in users['scout leader']:
             if user['username'] == ask_username and user['password'] == ask_password:
                 print('\nLogin successful! Welcome Scout Leader.\n')
+                matched = True
                 login = False
                 scout_leader_menu(ask_username)
-            else:
-                print('\nInvalid username or password.\n')
+                break
+        if not matched:
+            print('\nInvalid username or password.\n')
 
 
 def login_logisticscoordinator():
@@ -50,13 +53,16 @@ def login_logisticscoordinator():
         if check_disabled_logins(ask_username):
             print("This account has been disabled.")
             return
+        matched = False
         for user in users['logistics coordinator']:
             if user['username'] == ask_username and user['password'] == ask_password:
                 print('\nLogin successful! Welcome Logistics Coordinator.\n')
+                matched = True
                 login = False
                 logistics_coordinator_menu(users)
-            else:
-                print('\nInvalid username or password.\n')
+                break
+        if not matched:
+            print('\nInvalid username or password.\n')
 
 
 def login_loop():

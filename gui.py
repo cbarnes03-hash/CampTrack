@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import os
+from datetime import datetime
 
 from user_logins import users, load_logins, check_disabled_logins, save_logins, disabled_logins, enable_login
 from features.admin import list_users
-from camp_ops import create_camp, edit_camp, delete_camp
+from camp_class import Camp, save_to_file, read_from_file
 from features.logistics import (
     set_food_stock_data,
     top_up_food_data,
@@ -22,6 +23,7 @@ from features.scout import (
     money_earned_per_camp_data,
     total_money_earned_value,
     activity_stats_data,
+    find_camp_by_name,
 )
 from messaging import get_conversations_for_user, get_conversation, send_message
 
@@ -225,9 +227,9 @@ class LogisticsWindow(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Button(self, text="Create Camp", command=create_camp).pack(fill="x")
-        tk.Button(self, text="Edit Camp", command=edit_camp).pack(fill="x")
-        tk.Button(self, text="Delete Camp", command=delete_camp).pack(fill="x")
+        tk.Button(self, text="Create Camp", command=self.create_camp_ui).pack(fill="x")
+        tk.Button(self, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x")
+        tk.Button(self, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x")
         tk.Button(self, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x")
         tk.Button(self, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x")
         tk.Button(self, text="Set Pay Rate", command=self.set_pay_rate_ui).pack(fill="x")
@@ -300,6 +302,116 @@ class LogisticsWindow(tk.Frame):
         notes = load_notifications()
         messagebox.showinfo("Notifications", "\n".join(str(n) for n in notes) if notes else "No notifications")
 
+    def create_camp_ui(self):
+        name = simple_prompt("Camp name:")
+        if not name:
+            return
+        location = simple_prompt("Location:")
+        if not location:
+            return
+        camp_type = simple_prompt_int("Camp type (1=Day, 2=Overnight, 3=Multiple Days)")
+        if camp_type not in (1, 2, 3):
+            messagebox.showerror("Error", "Camp type must be 1, 2, or 3.")
+            return
+        start_date = simple_prompt("Start date (YYYY-MM-DD):")
+        end_date = simple_prompt("End date (YYYY-MM-DD):")
+        for d in (start_date, end_date):
+            try:
+                datetime.strptime(d, "%Y-%m-%d")
+            except Exception:
+                messagebox.showerror("Error", "Invalid date format.")
+                return
+        food_stock = simple_prompt_int("Initial daily food stock:")
+        if food_stock is None or food_stock < 0:
+            messagebox.showerror("Error", "Food stock must be a non-negative integer.")
+            return
+        read_from_file()
+        Camp(name, location, camp_type, start_date, end_date, food_stock)
+        save_to_file()
+        messagebox.showinfo("Success", f"Camp {name} created.")
+
+    def edit_camp_ui(self):
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Edit Camp", "No camps exist.")
+            return
+        camp_names = [c.name for c in camps]
+        prompt = "Select camp number to edit:\n" + "\n".join(f"[{i+1}] {name}" for i, name in enumerate(camp_names))
+        choice = tk.simpledialog.askinteger("Edit Camp", prompt, minvalue=1, maxvalue=len(camps))
+        if choice is None:
+            return
+        camp = camps[choice - 1]
+        new_name = simple_prompt(f"New name (leave blank to keep '{camp.name}'):")
+        if new_name:
+            camp.name = new_name
+        new_loc = simple_prompt(f"New location (leave blank to keep '{camp.location}'):")
+        if new_loc:
+            camp.location = new_loc
+        new_type = simple_prompt("New camp type (1-3, blank to keep):")
+        if new_type:
+            try:
+                ct = int(new_type)
+                if ct in (1, 2, 3):
+                    camp.camp_type = ct
+            except ValueError:
+                messagebox.showerror("Error", "Invalid camp type.")
+                return
+        new_start = simple_prompt(f"New start date (YYYY-MM-DD, blank to keep {camp.start_date}):")
+        if new_start:
+            try:
+                datetime.strptime(new_start, "%Y-%m-%d")
+                camp.start_date = new_start
+            except Exception:
+                messagebox.showerror("Error", "Invalid start date.")
+                return
+        new_end = simple_prompt(f"New end date (YYYY-MM-DD, blank to keep {camp.end_date}):")
+        if new_end:
+            try:
+                datetime.strptime(new_end, "%Y-%m-%d")
+                camp.end_date = new_end
+            except Exception:
+                messagebox.showerror("Error", "Invalid end date.")
+                return
+        new_food = simple_prompt("New daily food stock (blank to keep):")
+        if new_food:
+            try:
+                nf = int(new_food)
+                if nf < 0:
+                    raise ValueError
+                camp.food_stock = nf
+            except ValueError:
+                messagebox.showerror("Error", "Invalid food stock.")
+                return
+        new_pay = simple_prompt("New daily pay rate (blank to keep):")
+        if new_pay:
+            try:
+                pr = int(new_pay)
+                if pr < 0:
+                    raise ValueError
+                camp.pay_rate = pr
+            except ValueError:
+                messagebox.showerror("Error", "Invalid pay rate.")
+                return
+        save_to_file()
+        messagebox.showinfo("Success", "Camp updated.")
+
+    def delete_camp_ui(self):
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Delete Camp", "No camps exist.")
+            return
+        camp_names = [c.name for c in camps]
+        prompt = "Select camp number to delete:\n" + "\n".join(f"[{i+1}] {name}" for i, name in enumerate(camp_names))
+        choice = tk.simpledialog.askinteger("Delete Camp", prompt, minvalue=1, maxvalue=len(camps))
+        if choice is None:
+            return
+        camp = camps[choice - 1]
+        if not messagebox.askyesno("Confirm", f"Delete camp '{camp.name}'?"):
+            return
+        del camps[choice - 1]
+        Camp.all_camps = camps
+        save_to_file()
+        messagebox.showinfo("Success", f"Camp '{camp.name}' deleted.")
     def logout(self):
         self.master.destroy()
         launch_login()
@@ -323,47 +435,75 @@ class ScoutWindow(tk.Frame):
         if not camps:
             messagebox.showinfo("Select Camps", "No camps exist.")
             return
-        options = {str(i+1): camp for i, camp in enumerate(camps)}
-        sel = simple_prompt(f"Select camps by numbers separated by commas (1-{len(camps)}):\n" +
-                            "\n".join(f"[{i}] {camp.name}" for i, camp in options.items()))
-        if not sel:
-            return
-        try:
-            indices = [int(x.strip())-1 for x in sel.split(",")]
-        except ValueError:
-            messagebox.showerror("Error", "Invalid selection.")
+        indices = select_camp_dialog("Select camps to supervise", camps, allow_multiple=True)
+        if not indices:
+            messagebox.showinfo("Select Camps", "No camps selected.")
             return
         res = assign_camps_to_leader(camps, self.username, indices)
-        messagebox.showinfo("Result", res.get("status"))
+        status = res.get("status")
+        if status == "ok":
+            messagebox.showinfo("Success", f"Assigned: {', '.join(res.get('selected', []))}")
+        elif status == "overlap":
+            messagebox.showerror("Error", "Selected camps overlap in dates. Please choose non-conflicting camps.")
+        elif status == "invalid_index":
+            messagebox.showerror("Error", "Invalid selection.")
+        else:
+            messagebox.showerror("Error", status or "Unknown error")
 
     def bulk_assign_ui(self):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Bulk Assign", "No camps exist.")
             return
-        camp = simple_prompt("Camp name")
-        if not camp:
+        indices = select_camp_dialog("Select camp for camper import", camps, allow_multiple=False)
+        if not indices:
             return
+        camp = camps[indices[0]]
         filepath = filedialog.askopenfilename(title="Select campers CSV", filetypes=[("CSV files", "*.csv")])
         if not filepath:
             return
-        res = bulk_assign_campers_from_csv(camp, filepath)
-        messagebox.showinfo("Result", res.get("status"))
+        res = bulk_assign_campers_from_csv(camp.name, filepath)
+        status = res.get("status")
+        if status == "ok":
+            added = res.get("added", [])
+            messagebox.showinfo("Success", f"Assigned {len(added)} campers to {camp.name}.")
+        elif status == "file_not_found":
+            messagebox.showerror("Error", "CSV file not found.")
+        elif status == "camp_not_found":
+            messagebox.showerror("Error", "Camp not found.")
+        elif status == "no_campers":
+            messagebox.showinfo("Result", "No campers in CSV.")
+        else:
+            messagebox.showerror("Error", status or "Unknown error")
 
     def food_req_ui(self):
-        camp = simple_prompt("Camp name")
-        if not camp:
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Food", "No camps exist.")
             return
+        indices = select_camp_dialog("Select camp to set food requirement", camps, allow_multiple=False)
+        if not indices:
+            return
+        camp = camps[indices[0]].name
         units = simple_prompt_int("Daily food units per camper")
         if units is None:
             return
         res = assign_food_amount_pure(camp, units)
-        messagebox.showinfo("Result", res.get("status"))
+        status = res.get("status")
+        if status == "ok":
+            messagebox.showinfo("Success", f"Saved {units} units per camper for {camp}.")
+        else:
+            messagebox.showerror("Error", status or "Unknown error")
 
     def record_activity_ui(self):
-        camp = simple_prompt("Camp name")
-        if not camp:
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Activity", "No camps exist.")
             return
+        indices = select_camp_dialog("Select camp for activity entry", camps, allow_multiple=False)
+        if not indices:
+            return
+        camp = camps[indices[0]].name
         date = simple_prompt("Date (YYYY-MM-DD)")
         if not date:
             return
@@ -375,14 +515,17 @@ class ScoutWindow(tk.Frame):
         food = simple_prompt("Food units used (optional)")
         food_units = int(food) if food and food.isdigit() else None
         res = record_activity_entry_data(camp, date, activity_name, activity_time, notes, food_units)
-        messagebox.showinfo("Result", res.get("status"))
+        status = res.get("status")
+        if status == "ok":
+            messagebox.showinfo("Success", f"Entry recorded for {camp} on {date}.")
+        else:
+            messagebox.showerror("Error", status or "Unknown error")
 
     def stats_ui(self):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Stats", "No camps exist.")
             return
-        camp = simple_prompt("Camp name for activity stats (optional, leave blank to skip)")
         lines = []
         lines.append("Engagement:")
         for name, score in engagement_scores_data():
@@ -391,20 +534,26 @@ class ScoutWindow(tk.Frame):
         for name, earned in money_earned_per_camp_data():
             lines.append(f"{name}: ${earned}")
         lines.append(f"\nTotal money: ${total_money_earned_value()}")
-        if camp:
-            camp_obj = find_camp_by_name(camp)
-            if camp_obj:
-                stats = activity_stats_data(camp_obj)
-                if stats["status"] == "ok":
-                    lines.append(f"\nActivity summary for {camp}:")
-                    lines.append(f"Total entries: {stats['total_entries']}")
-                    if stats["total_food_used"] is not None:
-                        lines.append(f"Total food used: {stats['total_food_used']} units")
-                else:
-                    lines.append(f"\nNo activities recorded for {camp}.")
+
+        # optional activity detail
+        indices = select_camp_dialog("Select a camp for activity stats (cancel to skip)", camps, allow_multiple=False, allow_cancel=True)
+        if indices:
+            camp_obj = camps[indices[0]]
+            stats = activity_stats_data(camp_obj)
+            if stats["status"] == "ok":
+                lines.append(f"\nActivity summary for {camp_obj.name}:")
+                lines.append(f"Total entries: {stats['total_entries']}")
+                if stats["total_food_used"] is not None:
+                    lines.append(f"Total food used: {stats['total_food_used']} units")
             else:
-                lines.append(f"\nCamp {camp} not found.")
-        messagebox.showinfo("Stats", "\n".join(lines))
+                lines.append(f"\nNo activities recorded for {camp_obj.name}.")
+
+        # show in a scrollable window
+        top = tk.Toplevel(self)
+        top.title("Scout Stats")
+        text = tk.Text(top, width=70, height=25)
+        text.pack(fill="both", expand=True)
+        text.insert("end", "\n".join(lines))
 
     def messaging_ui(self):
         convo_win = tk.Toplevel(self)
@@ -435,12 +584,45 @@ class ScoutWindow(tk.Frame):
         launch_login()
 
 def simple_prompt(prompt):
-    return tk.simpledialog.askstring("Input", prompt)
+    return simpledialog.askstring("Input", prompt)
 
 
 def simple_prompt_int(prompt):
-    val = tk.simpledialog.askinteger("Input", prompt)
+    val = simpledialog.askinteger("Input", prompt)
     return val
+
+
+def select_camp_dialog(title, camps, allow_multiple=False, allow_cancel=False):
+    """Return list of selected indices from camps via a listbox dialog."""
+    top = tk.Toplevel()
+    top.title(title)
+    selectmode = "extended" if allow_multiple else "browse"
+    listbox = tk.Listbox(top, selectmode=selectmode, width=60)
+    for camp in camps:
+        listbox.insert("end", f"{camp.name} ({camp.location}) {camp.start_date}->{camp.end_date}")
+    listbox.pack(fill="both", expand=True, padx=10, pady=10)
+
+    result = {"indices": None}
+
+    def on_ok():
+        sel = listbox.curselection()
+        result["indices"] = list(sel)
+        top.destroy()
+
+    def on_cancel():
+        result["indices"] = None
+        top.destroy()
+
+    btn_frame = tk.Frame(top)
+    btn_frame.pack(pady=5)
+    tk.Button(btn_frame, text="OK", command=on_ok).pack(side="left", padx=5)
+    tk.Button(btn_frame, text="Cancel", command=on_cancel).pack(side="left", padx=5)
+    if allow_cancel:
+        tk.Button(btn_frame, text="Skip", command=on_cancel).pack(side="left", padx=5)
+
+    top.grab_set()
+    top.wait_window()
+    return result["indices"]
 
 
 if __name__ == "__main__":
