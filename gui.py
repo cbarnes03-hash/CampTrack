@@ -32,18 +32,19 @@ from features.scout import (
 from messaging import get_conversations_for_user, get_conversation, send_message
 
 
-class LoginWindow(tk.Frame):
+class LoginWindow(ttk.Frame):
     def __init__(self, master):
-        super().__init__(master)
+        super().__init__(master, padding=12)
         self.master = master
-        self.pack(padx=10, pady=10)
-        tk.Label(self, text="Username").grid(row=0, column=0, sticky="e")
-        tk.Label(self, text="Password").grid(row=1, column=0, sticky="e")
-        self.username = tk.Entry(self)
-        self.password = tk.Entry(self, show="*")
-        self.username.grid(row=0, column=1)
-        self.password.grid(row=1, column=1)
-        tk.Button(self, text="Login", command=self.attempt_login).grid(row=2, column=0, columnspan=2, pady=5)
+        self.pack(fill="both", expand=True)
+        ttk.Label(self, text="Username").grid(row=0, column=0, sticky="e", padx=4, pady=4)
+        ttk.Label(self, text="Password").grid(row=1, column=0, sticky="e", padx=4, pady=4)
+        self.username = ttk.Entry(self, width=28)
+        self.password = ttk.Entry(self, show="*", width=28)
+        self.username.grid(row=0, column=1, sticky="ew", padx=4, pady=4)
+        self.password.grid(row=1, column=1, sticky="ew", padx=4, pady=4)
+        ttk.Button(self, text="Login", command=self.attempt_login).grid(row=2, column=0, columnspan=2, pady=8, sticky="ew")
+        self.columnconfigure(1, weight=1)
 
     def attempt_login(self):
         uname = self.username.get().strip()
@@ -82,20 +83,29 @@ class LoginWindow(tk.Frame):
             messagebox.showerror("Login failed", "Invalid username or password.")
 
 
-class AdminWindow(tk.Frame):
+class AdminWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master)
+        super().__init__(master, padding=12)
         self.username = username
-        self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Label(self, text="Administrator Menu", font=("Arial", 14, "bold")).pack(pady=5)
-        tk.Button(self, text="View all users", command=self.list_users_ui).pack(fill="x")
-        tk.Button(self, text="Add a new user", command=self.add_user_ui).pack(fill="x")
-        tk.Button(self, text="Edit a user's password", command=self.edit_user_password_ui).pack(fill="x")
-        tk.Button(self, text="Delete a user", command=self.delete_user_ui).pack(fill="x")
-        tk.Button(self, text="Disable a user", command=self.disable_user_ui).pack(fill="x")
-        tk.Button(self, text="Enable a user", command=self.enable_user_ui).pack(fill="x")
-        tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
-        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
+        self.pack(fill="both", expand=True)
+        ttk.Label(self, text="Administrator Menu", style="Header.TLabel").pack(pady=(0, 10))
+
+        user_frame = ttk.LabelFrame(self, text="User Management", padding=10)
+        user_frame.pack(fill="both", expand=True, pady=(0, 8))
+        for text, cmd in [
+            ("View all users", self.list_users_ui),
+            ("Add a new user", self.add_user_ui),
+            ("Edit a user's password", self.edit_user_password_ui),
+            ("Delete a user", self.delete_user_ui),
+            ("Disable a user", self.disable_user_ui),
+            ("Enable a user", self.enable_user_ui),
+        ]:
+            ttk.Button(user_frame, text=text, command=cmd).pack(fill="x", pady=2)
+
+        misc_frame = ttk.LabelFrame(self, text="Other", padding=10)
+        misc_frame.pack(fill="both", expand=True)
+        ttk.Button(misc_frame, text="Messaging", command=self.messaging_ui).pack(fill="x", pady=2)
+        ttk.Button(misc_frame, text="Logout", command=self.logout).pack(fill="x", pady=2)
 
     def list_users_ui(self):
         lines = []
@@ -266,34 +276,50 @@ class AdminWindow(tk.Frame):
         launch_login()
 
 
-class LogisticsWindow(tk.Frame):
+class LogisticsWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master)
+        super().__init__(master, padding=12)
         self.username = username
-        self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Label(self, text="Logisitics Coordiator Menu", font=("Arial", 14, "bold")).pack(pady=5)
-        tk.Button(self, text="Manage and Create Camps", command=self.manage_camps_menu).pack(fill="x")
-        tk.Button(self, text="Manage Food Allocation", command=self.food_allocation_menu).pack(fill="x")
-        tk.Button(self, text="View Camp Dashboard", command=self.dashboard_ui).pack(fill="x")
-        tk.Button(self, text="Visualise Camp Data", command=self.visualise_menu).pack(fill="x")
-        tk.Button(self, text="Access Financial Settings", command=self.financial_settings_ui).pack(fill="x")
-        tk.Button(self, text="Access Notifications", command=self.notifications_ui).pack(fill="x")
-        tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
-        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
+        self.pack(fill="both", expand=True)
+        ttk.Label(self, text="Logisitics Coordiator Menu", style="Header.TLabel").pack(pady=(0, 10))
+        camp_frame = ttk.LabelFrame(self, text="Camps", padding=10)
+        camp_frame.pack(fill="both", expand=True, pady=(0, 8))
+        for text, cmd in [
+            ("Manage and Create Camps", self.manage_camps_menu),
+            ("Manage Food Allocation", self.food_allocation_menu),
+            ("Access Financial Settings", self.financial_settings_ui),
+        ]:
+            ttk.Button(camp_frame, text=text, command=cmd).pack(fill="x", pady=2)
+
+        viz_frame = ttk.LabelFrame(self, text="Insight & Notifications", padding=10)
+        viz_frame.pack(fill="both", expand=True, pady=(0, 8))
+        for text, cmd in [
+            ("View Camp Dashboard", self.dashboard_ui),
+            ("Visualise Camp Data", self.visualise_menu),
+            ("Access Notifications", self.notifications_ui),
+            ("Messaging", self.messaging_ui),
+        ]:
+            ttk.Button(viz_frame, text=text, command=cmd).pack(fill="x", pady=2)
+
+        ttk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=2)
 
     def manage_camps_menu(self):
         top = tk.Toplevel(self)
         top.title("Manage and Create Camps")
-        tk.Button(top, text="Create Camp", command=self.create_camp_ui).pack(fill="x")
-        tk.Button(top, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x")
-        tk.Button(top, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x")
+        frame = ttk.Frame(top, padding=10)
+        frame.pack(fill="both", expand=True)
+        ttk.Button(frame, text="Create Camp", command=self.create_camp_ui).pack(fill="x", pady=2)
+        ttk.Button(frame, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x", pady=2)
+        ttk.Button(frame, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x", pady=2)
 
     def food_allocation_menu(self):
         top = tk.Toplevel(self)
         top.title("Manage Food Allocation")
-        tk.Button(top, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x")
-        tk.Button(top, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x")
-        tk.Button(top, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x")
+        frame = ttk.Frame(top, padding=10)
+        frame.pack(fill="both", expand=True)
+        ttk.Button(frame, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x", pady=2)
+        ttk.Button(frame, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x", pady=2)
+        ttk.Button(frame, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x", pady=2)
 
     def set_food_stock_ui(self):
         camp = self.choose_camp_name()
@@ -519,19 +545,31 @@ class LogisticsWindow(tk.Frame):
         launch_login()
 
 
-class ScoutWindow(tk.Frame):
+class ScoutWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master)
+        super().__init__(master, padding=12)
         self.username = username
-        self.pack(padx=10, pady=10, fill="both", expand=True)
-        tk.Label(self, text="Scout Leader Menu", font=("Arial", 14, "bold")).pack(pady=5)
-        tk.Button(self, text="Select camps to supervise", command=self.select_camps_ui).pack(fill="x")
-        tk.Button(self, text="Bulk assign campers from CSV", command=self.bulk_assign_ui).pack(fill="x")
-        tk.Button(self, text="Assign food amount per camper per day", command=self.food_req_ui).pack(fill="x")
-        tk.Button(self, text="Record daily activity outcomes / incidents", command=self.record_activity_ui).pack(fill="x")
-        tk.Button(self, text="View camp statistics and trends", command=self.stats_ui).pack(fill="x")
-        tk.Button(self, text="Messaging", command=self.messaging_ui).pack(fill="x")
-        tk.Button(self, text="Logout", command=self.logout).pack(fill="x", pady=5)
+        self.pack(fill="both", expand=True)
+        ttk.Label(self, text="Scout Leader Menu", style="Header.TLabel").pack(pady=(0, 10))
+
+        actions = ttk.LabelFrame(self, text="Camp Actions", padding=10)
+        actions.pack(fill="both", expand=True, pady=(0, 8))
+        for text, cmd in [
+            ("Select camps to supervise", self.select_camps_ui),
+            ("Bulk assign campers from CSV", self.bulk_assign_ui),
+            ("Assign food amount per camper per day", self.food_req_ui),
+            ("Record daily activity outcomes / incidents", self.record_activity_ui),
+        ]:
+            ttk.Button(actions, text=text, command=cmd).pack(fill="x", pady=2)
+
+        stats_frame = ttk.LabelFrame(self, text="Insights & Messaging", padding=10)
+        stats_frame.pack(fill="both", expand=True)
+        for text, cmd in [
+            ("View camp statistics and trends", self.stats_ui),
+            ("Messaging", self.messaging_ui),
+            ("Logout", self.logout),
+        ]:
+            ttk.Button(stats_frame, text=text, command=cmd).pack(fill="x", pady=2)
 
     def select_camps_ui(self):
         camps = read_from_file()
