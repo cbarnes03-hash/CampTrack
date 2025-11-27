@@ -45,11 +45,13 @@ class LoginWindow(ttk.Frame):
         super().__init__(master, padding=12, style="App.TFrame")
         self.master = master
         self.pack(fill="both", expand=True)
-        # center the login form in a padded, fixed-width container (height driven by children)
-        card = ttk.Frame(self, padding=20, width=520, style="Card.TFrame")
+        # center the login form in a padded, fixed-width container
+        card = ttk.Frame(self, padding=24, width=420, style="Card.TFrame")
         card.pack(expand=True, padx=16, pady=16)
+        card.pack_propagate(False)
+        card.columnconfigure(0, weight=1)
 
-        # branding block
+        row = 0
         logo_path = os.path.join(os.path.dirname(__file__), "image.png")
         self.logo_img = None
         if os.path.exists(logo_path):
@@ -63,22 +65,30 @@ class LoginWindow(ttk.Frame):
                     bg=THEME_CARD,
                     borderwidth=0,
                     highlightthickness=0,
-                ).pack(pady=(0, 8))
+                ).grid(row=row, column=0, pady=(0, 12), sticky="n")
+                row += 1
             except Exception:
                 pass
 
-        ttk.Separator(card, orient="horizontal").pack(fill="x", pady=(8, 16))
+        ttk.Label(card, text="Welcome! Log in below.", style="Subtitle.TLabel").grid(row=row, column=0, pady=(0, 10), sticky="n")
+        row += 1
 
-        # fields with labels above
-        ttk.Label(card, text="Username", style="FieldLabel.TLabel").pack(anchor="w", padx=8, pady=(0, 4))
+        ttk.Separator(card, orient="horizontal").grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        row += 1
+
+        ttk.Label(card, text="Username", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=8, pady=(0, 4))
+        row += 1
         self.username = ttk.Entry(card, width=36, style="App.TEntry")
-        self.username.pack(fill="x", padx=8, pady=(0, 10))
+        self.username.grid(row=row, column=0, sticky="ew", padx=8, pady=(0, 10))
+        row += 1
 
-        ttk.Label(card, text="Password", style="FieldLabel.TLabel").pack(anchor="w", padx=8, pady=(0, 4))
+        ttk.Label(card, text="Password", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=8, pady=(0, 4))
+        row += 1
         self.password = ttk.Entry(card, show="*", width=36, style="App.TEntry")
-        self.password.pack(fill="x", padx=8, pady=(0, 14))
+        self.password.grid(row=row, column=0, sticky="ew", padx=8, pady=(0, 12))
+        row += 1
 
-        ttk.Button(card, text="Login", command=self.attempt_login, style="Primary.TButton").pack(fill="x", padx=8, pady=(0, 4))
+        ttk.Button(card, text="Login", command=self.attempt_login, style="Primary.TButton").grid(row=row, column=0, sticky="ew", padx=8, pady=(0, 4))
 
     def attempt_login(self):
         state_info = capture_window_state(self.master)
@@ -1017,11 +1027,11 @@ def init_style(root):
     # Separator
     style.configure(
         "TSeparator",
-        background=THEME_CARD,
-        foreground=THEME_CARD,
-        bordercolor=THEME_CARD,
-        darkcolor=THEME_CARD,
-        lightcolor=THEME_CARD,
+        background=THEME_MUTED,
+        foreground=THEME_MUTED,
+        bordercolor=THEME_MUTED,
+        darkcolor=THEME_MUTED,
+        lightcolor=THEME_MUTED,
     )
 
 
