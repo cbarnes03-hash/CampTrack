@@ -357,15 +357,6 @@ class AdminWindow(ttk.Frame):
         ttk.Separator(frame).pack(fill="x", pady=(0, 10))
 
         # load disabled usernames
-        disabled_set = set()
-        try:
-            with open('disabled_logins.txt', 'r') as file:
-                disabled_login = file.read().strip(',')
-                if disabled_login:
-                    disabled_set = {x for x in disabled_login.split(',') if x}
-        except FileNotFoundError:
-            pass
-
         columns = ("Role", "Username", "Password", "Status", "Created")
         tree = ttk.Treeview(frame, columns=columns, show="headings", height=12)
         for col in columns:
@@ -389,17 +380,171 @@ class AdminWindow(ttk.Frame):
 
         tree.bind("<Configure>", refresh_scrollbar)
 
-        def add_row(role, user):
-            status = "Disabled" if user['username'] in disabled_set else "Active"
+        def load_disabled_set():
+            s = set()
+            try:
+                with open('disabled_logins.txt', 'r') as file:
+                    disabled_login = file.read().strip(',')
+                    if disabled_login:
+                        s = {x for x in disabled_login.split(',') if x}
+            except FileNotFoundError:
+                pass
+            return s
+
+        def save_disabled_set(s):
+            with open('disabled_logins.txt', 'w') as f:
+                f.write(",".join(sorted(s)))
+
+        def add_row(role, user, ds):
+            status = "Disabled" if user['username'] in ds else "Active"
             tree.insert("", "end", values=(role, user['username'], user['password'], status, "N/A"))
 
-        for admin in users['admin']:
-            add_row("Admin", admin)
-        for role in ['scout leader', 'logistics coordinator']:
-            for user in users[role]:
-                add_row(role.title(), user)
-        if len(tree.get_children()) == 0:
-            tree.insert("", "end", values=("—", "No users found.", "", "", ""))
+        def refresh_tree():
+            for child in tree.get_children():
+                tree.delete(child)
+            ds = load_disabled_set()
+            for admin in users['admin']:
+                add_row("Admin", admin, ds)
+            for role in ['scout leader', 'logistics coordinator']:
+                for user in users[role]:
+                    add_row(role.title(), user, ds)
+            if len(tree.get_children()) == 0:
+                tree.insert("", "end", values=("—", "No users found.", "", "", ""))
+            refresh_scrollbar()
+
+        def get_selected():
+            sel = tree.selection()
+            if not sel:
+                show_error_toast(self.master, "Error", "Please select a user.")
+                return None
+            vals = tree.item(sel[0], "values")
+            if not vals or vals[0] == "—":
+                show_error_toast(self.master, "Error", "Please select a valid user.")
+                return None
+            return {"role": vals[0], "username": vals[1], "password": vals[2], "item": sel[0]}
+
+        def ensure_unique_username(name):
+            existing = {u['username'] for u in users['admin']}
+            existing |= {u['username'] for u in users['scout leader']}
+            existing |= {u['username'] for u in users['logistics coordinator']}
+            return name not in existing
+
+        def edit_password():
+            sel = get_selected()
+            if not sel:
+                return
+            new_pwd = simpledialog.askstring("Edit Password", f"New password for {sel['username']}:", show="*")
+            if new_pwd is None:
+                return
+            role_key = sel['role'].lower()
+            for u in users[role_key]:
+                if u['username'] == sel['username']:
+                    u['password'] = new_pwd
+                    break
+            save_logins()
+            refresh_tree()
+
+        def delete_user():
+            sel = get_selected()
+            if not sel:
+                return
+            if not messagebox.askyesno("Delete", f"Delete user {sel['username']}?"):
+                return
+            role_key = sel['role'].lower()
+            users[role_key] = [u for u in users[role_key] if u['username'] != sel['username']]
+            # also remove from disabled list if present
+            ds = load_disabled_set()
+            if sel['username'] in ds:
+                ds.remove(sel['username'])
+                save_disabled_set(ds)
+            save_logins()
+            refresh_tree()
+
+        def toggle_disable(enable=False):
+            sel = get_selected()
+            if not sel:
+                return
+            ds = load_disabled_set()
+            if enable:
+                if sel['username'] in ds:
+                    ds.remove(sel['username'])
+                    save_disabled_set(ds)
+                enable_login(sel['username'])
+            else:
+                disabled_logins(sel['username'])
+                ds.add(sel['username'])
+                save_disabled_set(ds)
+            refresh_tree()
+
+        def change_username():
+            sel = get_selected()
+            if not sel:
+                return
+            new_name = simpledialog.askstring("Change Username", f"New username for {sel['username']}:")
+            if not new_name:
+                return
+            new_name = new_name.strip()
+            if not new_name:
+                show_error_toast(self.master, "Error", "Username cannot be blank.")
+                return
+            if not ensure_unique_username(new_name):
+                show_error_toast(self.master, "Error", "Username already exists.")
+                return
+            role_key = sel['role'].lower()
+            for u in users[role_key]:
+                if u['username'] == sel['username']:
+                    u['username'] = new_name
+                    break
+            # update disabled list if present
+            ds = load_disabled_set()
+            if sel['username'] in ds:
+                ds.remove(sel['username'])
+                ds.add(new_name)
+                save_disabled_set(ds)
+            save_logins()
+            refresh_tree()
+
+        def change_role():
+            sel = get_selected()
+            if not sel:
+                return
+            current = sel['role'].lower()
+            roles = ["admin", "scout leader", "logistics coordinator"]
+            choice = simpledialog.askstring("Change Role", f"Enter new role {roles}:", initialvalue=current)
+            if not choice:
+                return
+            choice = choice.strip().lower()
+            if choice not in roles:
+                show_error_toast(self.master, "Error", "Invalid role.")
+                return
+            if choice == current:
+                return
+            if not ensure_unique_username(sel['username']):
+                show_error_toast(self.master, "Error", "Username already exists in target role.")
+                return
+            # move user
+            user_rec = None
+            for u in users[current]:
+                if u['username'] == sel['username']:
+                    user_rec = u
+                    break
+            if user_rec:
+                users[current] = [u for u in users[current] if u['username'] != sel['username']]
+                users[choice].append(user_rec)
+                save_logins()
+                refresh_tree()
+
+        # action buttons
+        btn_frame = ttk.Frame(frame, style="Card.TFrame")
+        btn_frame.pack(fill="x", pady=(8, 0))
+        ttk.Button(btn_frame, text="Edit Password", command=edit_password).pack(side="left", padx=4, pady=2)
+        ttk.Button(btn_frame, text="Change Username", command=change_username).pack(side="left", padx=4, pady=2)
+        ttk.Button(btn_frame, text="Change Role", command=change_role).pack(side="left", padx=4, pady=2)
+        ttk.Button(btn_frame, text="Disable", command=lambda: toggle_disable(False), style="Danger.TButton").pack(side="left", padx=4, pady=2)
+        ttk.Button(btn_frame, text="Enable", command=lambda: toggle_disable(True)).pack(side="left", padx=4, pady=2)
+        ttk.Button(btn_frame, text="Delete", command=delete_user, style="Danger.TButton").pack(side="left", padx=4, pady=2)
+
+        refresh_tree()
 
     def add_user_ui(self):
         top = tk.Toplevel(self)
