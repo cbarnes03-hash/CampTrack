@@ -41,6 +41,18 @@ THEME_ACCENT = LOGO_GREEN    # primary accent now matches logo
 THEME_ACCENT_ACTIVE = "#43a047"
 THEME_ACCENT_PRESSED = "#388e3c"
 
+
+def load_logo(max_px=260):
+    logo_path = os.path.join(os.path.dirname(__file__), "image.png")
+    if not os.path.exists(logo_path):
+        return None
+    try:
+        with Image.open(logo_path) as im:
+            im.thumbnail((max_px, max_px), Image.LANCZOS)
+            return ImageTk.PhotoImage(im)
+    except Exception:
+        return None
+
 class LoginWindow(ttk.Frame):
     def __init__(self, master):
         super().__init__(master, padding=12, style="App.TFrame")
@@ -53,23 +65,16 @@ class LoginWindow(ttk.Frame):
         card.columnconfigure(0, weight=1)
 
         row = 0
-        logo_path = os.path.join(os.path.dirname(__file__), "image.png")
-        self.logo_img = None
-        if os.path.exists(logo_path):
-            try:
-                with Image.open(logo_path) as im:
-                    im.thumbnail((260, 260), Image.LANCZOS)
-                    self.logo_img = ImageTk.PhotoImage(im)
-                tk.Label(
-                    card,
-                    image=self.logo_img,
-                    bg=THEME_CARD,
-                    borderwidth=0,
-                    highlightthickness=0,
-                ).grid(row=row, column=0, pady=(0, 12), sticky="n")
-                row += 1
-            except Exception:
-                pass
+        self.logo_img = load_logo(260)
+        if self.logo_img:
+            tk.Label(
+                card,
+                image=self.logo_img,
+                bg=THEME_CARD,
+                borderwidth=0,
+                highlightthickness=0,
+            ).grid(row=row, column=0, pady=(0, 12), sticky="n")
+            row += 1
 
         ttk.Label(card, text="Welcome! Log in below.", style="Subtitle.TLabel").grid(row=row, column=0, pady=(0, 10), sticky="n")
         row += 1
@@ -77,7 +82,7 @@ class LoginWindow(ttk.Frame):
         ttk.Separator(card, orient="horizontal").grid(row=row, column=0, sticky="ew", pady=(0, 8))
         row += 1
 
-        ttk.Label(card, text="Username", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=8)
+        ttk.Label(card, text="Username", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=2)
         row += 1
         self.username = tk.Entry(
             card,
@@ -93,7 +98,7 @@ class LoginWindow(ttk.Frame):
         self.username.grid(row=row, column=0, sticky="ew", pady=(0, 10), ipady=6, padx=8)
         row += 1
 
-        ttk.Label(card, text="Password", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=8)
+        ttk.Label(card, text="Password", style="FieldLabel.TLabel").grid(row=row, column=0, sticky="w", padx=2)
         row += 1
         self.password = tk.Entry(
             card,
@@ -163,13 +168,17 @@ class AdminWindow(ttk.Frame):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=16, style="Card.TFrame", width=720)
-        wrapper.pack(expand=True, pady=8)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
+        wrapper.pack(expand=True, padx=16, pady=12)
 
-        ttk.Label(wrapper, text="Administrator Menu", style="Header.TLabel").pack(pady=(0, 10))
+        self.logo_small = load_logo(64)
+        if self.logo_small:
+            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
+        ttk.Label(wrapper, text="Administrator Menu", style="Header.TLabel").pack(pady=(0, 4))
+        ttk.Label(wrapper, text="Admin tools", style="Subtitle.TLabel").pack(pady=(0, 10))
 
-        user_frame = ttk.LabelFrame(wrapper, text="User Management", padding=10)
-        user_frame.pack(fill="both", expand=True, pady=(0, 8))
+        user_frame = ttk.LabelFrame(wrapper, text="User Management", padding=12, style="Card.TFrame")
+        user_frame.pack(fill="both", expand=True, pady=(0, 12))
         for text, cmd in [
             ("View all users", self.list_users_ui),
             ("Add a new user", self.add_user_ui),
@@ -178,10 +187,15 @@ class AdminWindow(ttk.Frame):
             ("Disable a user", self.disable_user_ui),
             ("Enable a user", self.enable_user_ui),
         ]:
-            ttk.Button(user_frame, text=text, command=cmd).pack(fill="x", pady=2)
+            btn_style = "TButton"
+            if "Add" in text:
+                btn_style = "Primary.TButton"
+            if "Delete" in text or "Disable" in text:
+                btn_style = "Danger.TButton"
+            ttk.Button(user_frame, text=text, command=cmd, style=btn_style).pack(fill="x", pady=2)
 
-        misc_frame = ttk.LabelFrame(wrapper, text="Other", padding=10)
-        misc_frame.pack(fill="both", expand=True)
+        misc_frame = ttk.LabelFrame(wrapper, text="Other", padding=12, style="Card.TFrame")
+        misc_frame.pack(fill="both", expand=True, pady=(0, 12))
         ttk.Button(misc_frame, text="Messaging", command=self.messaging_ui).pack(fill="x", pady=2)
         ttk.Button(misc_frame, text="Logout", command=self.logout, style="Danger.TButton").pack(fill="x", pady=2)
 
@@ -194,110 +208,177 @@ class AdminWindow(ttk.Frame):
                 lines.append(f"Role: {role}, Username: {user['username']}, Password: {user['password']}")
         messagebox.showinfo("Users", "\n".join(lines) if lines else "No users found.")
 
-    def prompt_role(self, allow_admin=False):
-        roles = ["scout leader", "logistics coordinator"]
-        if allow_admin:
-            roles.append("admin")
-        prompt = "Choose role:\n" + "\n".join(f"[{i+1}] {r}" for i, r in enumerate(roles))
-        choice = tk.simpledialog.askinteger("Role", prompt, minvalue=1, maxvalue=len(roles))
-        if choice is None:
-            return None
-        return roles[choice-1]
-
     def add_user_ui(self):
-        role = self.prompt_role(allow_admin=True)
-        if not role:
-            return
-        while True:
-            username = simple_prompt("Enter username:")
-            if username is None:
-                return
-            username = username.strip()
-            if username == "":
+        top = tk.Toplevel(self)
+        top.title("Add User")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Add a new user", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        roles = ["admin", "scout leader", "logistics coordinator"]
+        role_var = tk.StringVar(value=roles[0])
+        ttk.Label(frame, text="Role", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        ttk.OptionMenu(frame, role_var, roles[0], *roles).pack(fill="x", pady=(0, 8))
+
+        ttk.Label(frame, text="Username", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        user_entry = ttk.Entry(frame, style="App.TEntry")
+        user_entry.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(frame, text="Password (optional)", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        pwd_entry = ttk.Entry(frame, style="App.TEntry", show="*")
+        pwd_entry.pack(fill="x", pady=(0, 10))
+
+        def submit():
+            role = role_var.get()
+            username = user_entry.get().strip()
+            if not username:
                 messagebox.showerror("Error", "Username cannot be blank.")
-                continue
+                return
             existing = [u['username'] for u in users['admin']]
             existing += [u['username'] for u in users['scout leader']]
             existing += [u['username'] for u in users['logistics coordinator']]
             if username in existing:
                 messagebox.showerror("Error", "Username already exists.")
-                continue
-            break
-        pwd = simple_prompt("Enter password (blank allowed):")
-        if pwd is None:
-            return
-        if role == "admin":
-            users['admin'].append({'username': username, 'password': pwd})
-        else:
-            users[role].append({'username': username, 'password': pwd})
-        save_logins()
-        messagebox.showinfo("Success", f"Added {role}: {username}")
+                return
+            pwd = pwd_entry.get()
+            target_list = users['admin'] if role == "admin" else users[role]
+            target_list.append({'username': username, 'password': pwd})
+            save_logins()
+            messagebox.showinfo("Success", f"Added {role}: {username}")
+            top.destroy()
+
+        ttk.Button(frame, text="Add User", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def edit_user_password_ui(self):
-        role = self.prompt_role(allow_admin=True)
-        if not role:
-            return
-        if role == "admin":
-            names = [u['username'] for u in users['admin']]
-            if not names:
-                messagebox.showinfo("Info", "No admin users found.")
-                return
-            target_user = simple_prompt(f"Enter admin username to edit ({', '.join(names)}):")
-            if target_user not in names:
-                messagebox.showerror("Error", "User not found.")
-                return
-        else:
+        top = tk.Toplevel(self)
+        top.title("Edit User Password")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Edit user password", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        roles = ["admin", "scout leader", "logistics coordinator"]
+        role_var = tk.StringVar(value=roles[0])
+        ttk.Label(frame, text="Role", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        role_menu = ttk.OptionMenu(frame, role_var, roles[0], *roles)
+        role_menu.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(frame, text="User", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        user_var = tk.StringVar()
+        user_menu = ttk.OptionMenu(frame, user_var, "")
+        user_menu.pack(fill="x", pady=(0, 8))
+
+        def refresh_users(*args):
+            role = role_var.get()
             names = [u['username'] for u in users[role]]
-            if not names:
-                messagebox.showinfo("Info", f"No users found for role {role}.")
+            menu = user_menu["menu"]
+            menu.delete(0, "end")
+            if names:
+                user_var.set(names[0])
+                for n in names:
+                    menu.add_command(label=n, command=lambda v=n: user_var.set(v))
+            else:
+                user_var.set("")
+        role_var.trace_add("write", refresh_users)
+        refresh_users()
+
+        ttk.Label(frame, text="New password", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        pwd_entry = ttk.Entry(frame, style="App.TEntry", show="*")
+        pwd_entry.pack(fill="x", pady=(0, 10))
+
+        def submit():
+            role = role_var.get()
+            target_user = user_var.get()
+            if not target_user:
+                messagebox.showerror("Error", "No users for this role.")
                 return
-            target_user = simple_prompt(f"Enter username to edit ({', '.join(names)}):")
-            if target_user not in names:
-                messagebox.showerror("Error", "User not found.")
-                return
-        new_pwd = simple_prompt(f"Enter new password for {target_user}:")
-        if new_pwd is None:
-            return
-        if role == "admin":
-            for u in users['admin']:
-                if u['username'] == target_user:
-                    u['password'] = new_pwd
-                    break
-        else:
+            new_pwd = pwd_entry.get()
             for u in users[role]:
                 if u['username'] == target_user:
                     u['password'] = new_pwd
                     break
-        save_logins()
-        messagebox.showinfo("Success", "Password updated.")
+            save_logins()
+            messagebox.showinfo("Success", "Password updated.")
+            top.destroy()
+
+        ttk.Button(frame, text="Save", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def delete_user_ui(self):
-        role = self.prompt_role(allow_admin=False)
-        if not role:
-            return
-        names = [u['username'] for u in users[role]]
-        if not names:
-            messagebox.showinfo("Info", f"No users found for role {role}.")
-            return
-        target_user = simple_prompt(f"Enter username to delete ({', '.join(names)}):")
-        if target_user not in names:
-            messagebox.showerror("Error", "User not found.")
-            return
-        users[role] = [u for u in users[role] if u['username'] != target_user]
-        save_logins()
-        messagebox.showinfo("Success", f"Deleted {target_user}.")
+        top = tk.Toplevel(self)
+        top.title("Delete User")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Delete user", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        roles = ["scout leader", "logistics coordinator"]
+        role_var = tk.StringVar(value=roles[0])
+        ttk.Label(frame, text="Role", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        role_menu = ttk.OptionMenu(frame, role_var, roles[0], *roles)
+        role_menu.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(frame, text="User", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        user_var = tk.StringVar()
+        user_menu = ttk.OptionMenu(frame, user_var, "")
+        user_menu.pack(fill="x", pady=(0, 10))
+
+        def refresh_users(*args):
+            role = role_var.get()
+            names = [u['username'] for u in users[role]]
+            menu = user_menu["menu"]
+            menu.delete(0, "end")
+            if names:
+                user_var.set(names[0])
+                for n in names:
+                    menu.add_command(label=n, command=lambda v=n: user_var.set(v))
+            else:
+                user_var.set("")
+        role_var.trace_add("write", refresh_users)
+        refresh_users()
+
+        def submit():
+            role = role_var.get()
+            target_user = user_var.get()
+            if not target_user:
+                messagebox.showerror("Error", "No users for this role.")
+                return
+            users[role] = [u for u in users[role] if u['username'] != target_user]
+            save_logins()
+            messagebox.showinfo("Success", f"Deleted {target_user}.")
+            top.destroy()
+
+        ttk.Button(frame, text="Delete", command=submit, style="Danger.TButton").pack(fill="x", pady=(4, 0))
 
     def disable_user_ui(self):
         names = [u['username'] for u in users['admin']]
         names += [u['username'] for u in users['scout leader']]
         names += [u['username'] for u in users['logistics coordinator']]
-        target_user = simple_prompt(f"Enter username to disable ({', '.join(names)}):")
-        if not target_user or target_user not in names:
-            messagebox.showerror("Error", "User not found.")
+        if not names:
+            messagebox.showinfo("Info", "No users to disable.")
             return
-        disabled_logins(target_user)
-        save_logins()
-        messagebox.showinfo("Success", f"Disabled {target_user}.")
+        top = tk.Toplevel(self)
+        top.title("Disable User")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Disable user", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+        ttk.Label(frame, text="User", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        user_var = tk.StringVar(value=names[0])
+        ttk.OptionMenu(frame, user_var, names[0], *names).pack(fill="x", pady=(0, 10))
+
+        def submit():
+            target_user = user_var.get()
+            disabled_logins(target_user)
+            save_logins()
+            messagebox.showinfo("Success", f"Disabled {target_user}.")
+            top.destroy()
+
+        ttk.Button(frame, text="Disable", command=submit, style="Danger.TButton").pack(fill="x", pady=(4, 0))
 
     def enable_user_ui(self):
         disabled_usernames = []
@@ -311,19 +392,30 @@ class AdminWindow(ttk.Frame):
         if not disabled_usernames:
             messagebox.showinfo("Info", "No disabled users.")
             return
-        target_user = simple_prompt(f"Enter username to enable ({', '.join(disabled_usernames)}):")
-        if not target_user or target_user not in disabled_usernames:
-            messagebox.showerror("Error", "User not found in disabled list.")
-            return
-        # ensure user still exists
-        existing = [u['username'] for u in users['admin']]
-        existing += [u['username'] for u in users['scout leader']]
-        existing += [u['username'] for u in users['logistics coordinator']]
-        if target_user not in existing:
-            messagebox.showerror("Error", "User no longer exists.")
-            return
-        enable_login(target_user)
-        messagebox.showinfo("Success", f"Enabled {target_user}.")
+        top = tk.Toplevel(self)
+        top.title("Enable User")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Enable user", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+        ttk.Label(frame, text="User", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        user_var = tk.StringVar(value=disabled_usernames[0])
+        ttk.OptionMenu(frame, user_var, disabled_usernames[0], *disabled_usernames).pack(fill="x", pady=(0, 10))
+
+        def submit():
+            target_user = user_var.get()
+            existing = [u['username'] for u in users['admin']]
+            existing += [u['username'] for u in users['scout leader']]
+            existing += [u['username'] for u in users['logistics coordinator']]
+            if target_user not in existing:
+                messagebox.showerror("Error", "User no longer exists.")
+                return
+            enable_login(target_user)
+            messagebox.showinfo("Success", f"Enabled {target_user}.")
+            top.destroy()
+
+        ttk.Button(frame, text="Enable", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def messaging_ui(self):
         convo_win = tk.Toplevel(self)
@@ -332,16 +424,28 @@ class AdminWindow(ttk.Frame):
         frame = ttk.Frame(convo_win, padding=12, style="Card.TFrame")
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="Conversations").pack()
-        listbox = tk.Listbox(frame)
-        listbox.pack(fill="both", expand=True, pady=6)
+        lb_frame = ttk.Frame(frame, style="Card.TFrame")
+        lb_frame.pack(fill="both", expand=True, pady=6)
+        listbox = tk.Listbox(
+            lb_frame,
+            bg="#0b1729",
+            fg=THEME_FG,
+            selectbackground=THEME_ACCENT,
+            highlightthickness=0,
+            relief="flat",
+        )
+        scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+        scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
         partners = get_conversations_for_user(self.username)
         for p in partners:
             listbox.insert("end", p)
         ttk.Label(frame, text="Recipient:").pack()
-        recipient_entry = ttk.Entry(frame)
+        recipient_entry = ttk.Entry(frame, style="App.TEntry")
         recipient_entry.pack(fill="x", pady=2)
         ttk.Label(frame, text="Message:").pack()
-        message_entry = ttk.Entry(frame, width=50)
+        message_entry = ttk.Entry(frame, width=50, style="App.TEntry")
         message_entry.pack(fill="x", pady=2)
 
         def send():
@@ -368,22 +472,27 @@ class LogisticsWindow(ttk.Frame):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=16, style="Card.TFrame", width=720)
-        wrapper.pack(expand=True, pady=8)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
+        wrapper.pack(expand=True, padx=16, pady=12)
 
-        ttk.Label(wrapper, text="Logisitics Coordiator Menu", style="Header.TLabel").pack(pady=(0, 10))
+        self.logo_small = load_logo(64)
+        if self.logo_small:
+            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
+        ttk.Label(wrapper, text="Logisitics Coordiator Menu", style="Header.TLabel").pack(pady=(0, 4))
+        ttk.Label(wrapper, text="Logistics overview", style="Subtitle.TLabel").pack(pady=(0, 10))
 
-        camp_frame = ttk.LabelFrame(wrapper, text="Camps", padding=10)
-        camp_frame.pack(fill="both", expand=True, pady=(0, 8))
+        camp_frame = ttk.LabelFrame(wrapper, text="Camps", padding=12, style="Card.TFrame")
+        camp_frame.pack(fill="both", expand=True, pady=(0, 12))
         for text, cmd in [
             ("Manage and Create Camps", self.manage_camps_menu),
             ("Manage Food Allocation", self.food_allocation_menu),
             ("Access Financial Settings", self.financial_settings_ui),
         ]:
-            ttk.Button(camp_frame, text=text, command=cmd).pack(fill="x", pady=2)
+            btn_style = "Primary.TButton" if "Manage and Create" in text else "TButton"
+            ttk.Button(camp_frame, text=text, command=cmd, style=btn_style).pack(fill="x", pady=2)
 
-        viz_frame = ttk.LabelFrame(wrapper, text="Insight & Notifications", padding=10)
-        viz_frame.pack(fill="both", expand=True, pady=(0, 8))
+        viz_frame = ttk.LabelFrame(wrapper, text="Insight & Notifications", padding=12, style="Card.TFrame")
+        viz_frame.pack(fill="both", expand=True, pady=(0, 12))
         for text, cmd in [
             ("View Camp Dashboard", self.dashboard_ui),
             ("Visualise Camp Data", self.visualise_menu),
@@ -398,51 +507,195 @@ class LogisticsWindow(ttk.Frame):
         top = tk.Toplevel(self)
         top.title("Manage and Create Camps")
         top.configure(bg=THEME_BG)
-        frame = ttk.Frame(top, padding=10, style="Card.TFrame")
-        frame.pack(fill="both", expand=True)
-        ttk.Button(frame, text="Create Camp", command=self.create_camp_ui).pack(fill="x", pady=2)
-        ttk.Button(frame, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x", pady=2)
-        ttk.Button(frame, text="Delete Camp", command=self.delete_camp_ui).pack(fill="x", pady=2)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Camp Management", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+        ttk.Button(frame, text="Create Camp", command=self.create_camp_ui, style="Primary.TButton").pack(fill="x", pady=4)
+        ttk.Button(frame, text="Edit Camp", command=self.edit_camp_ui).pack(fill="x", pady=4)
+        ttk.Button(frame, text="Delete Camp", command=self.delete_camp_ui, style="Danger.TButton").pack(fill="x", pady=4)
 
     def food_allocation_menu(self):
         top = tk.Toplevel(self)
         top.title("Manage Food Allocation")
         top.configure(bg=THEME_BG)
-        frame = ttk.Frame(top, padding=10, style="Card.TFrame")
-        frame.pack(fill="both", expand=True)
-        ttk.Button(frame, text="Set Daily Food Stock", command=self.set_food_stock_ui).pack(fill="x", pady=2)
-        ttk.Button(frame, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x", pady=2)
-        ttk.Button(frame, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x", pady=2)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Food Allocation", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+        ttk.Button(frame, text="Set Daily Food Stock", command=self.set_food_stock_ui, style="Primary.TButton").pack(fill="x", pady=4)
+        ttk.Button(frame, text="Top-Up Food Stock", command=self.top_up_food_ui).pack(fill="x", pady=4)
+        ttk.Button(frame, text="Check Food Shortage", command=self.shortage_ui).pack(fill="x", pady=4)
 
     def set_food_stock_ui(self):
-        camp = self.choose_camp_name()
-        if not camp:
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Set Stock", "No camps exist.")
             return
-        val = simple_prompt_int("New daily stock")
-        if val is None:
-            return
-        res = set_food_stock_data(camp, val)
-        messagebox.showinfo("Result", res.get("status"))
+
+        def choose_camp():
+            top = tk.Toplevel(self)
+            top.title("Set Daily Food Stock")
+            top.configure(bg=THEME_BG)
+            frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+            frame.pack(fill="both", expand=True, padx=12, pady=12)
+            ttk.Label(frame, text="Set Daily Food Stock", style="Header.TLabel").pack(pady=(0, 4))
+            ttk.Label(frame, text="Choose a camp to update", style="Subtitle.TLabel").pack(pady=(0, 6))
+            ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+            lb_frame = ttk.Frame(frame, style="Card.TFrame")
+            lb_frame.pack(fill="both", expand=True, pady=4)
+            listbox = tk.Listbox(
+                lb_frame,
+                bg="#0b1729",
+                fg=THEME_FG,
+                selectbackground=THEME_ACCENT,
+                highlightthickness=0,
+                relief="flat",
+                width=50,
+            )
+            scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+            listbox.configure(yscrollcommand=scrollbar.set)
+            listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+            scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
+            for camp in camps:
+                listbox.insert("end", camp.name)
+
+            def next_step():
+                sel = listbox.curselection()
+                if not sel:
+                    messagebox.showerror("Error", "Please select a camp.")
+                    return
+                camp_name = listbox.get(sel[0])
+                top.destroy()
+                enter_stock(camp_name)
+
+            ttk.Button(frame, text="Next", command=next_step, style="Primary.TButton").pack(fill="x", pady=(8, 0))
+
+        def enter_stock(camp):
+            top = tk.Toplevel(self)
+            top.title("Set Daily Food Stock")
+            top.configure(bg=THEME_BG)
+            frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+            frame.pack(fill="both", expand=True, padx=12, pady=12)
+            ttk.Label(frame, text="Set Daily Food Stock", style="Header.TLabel").pack(pady=(0, 8))
+            ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+            ttk.Label(frame, text=f"Camp: {camp}", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 6))
+            ttk.Label(frame, text="New daily stock", style="FieldLabel.TLabel").pack(anchor="w")
+            stock_entry = ttk.Entry(frame, style="App.TEntry")
+            stock_entry.pack(fill="x", pady=(0, 10))
+
+            def submit():
+                try:
+                    val = int(stock_entry.get().strip())
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter a whole number.")
+                    return
+                res = set_food_stock_data(camp, val)
+                messagebox.showinfo("Result", res.get("status"))
+                top.destroy()
+
+            ttk.Button(frame, text="Save", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
+
+        choose_camp()
 
     def top_up_food_ui(self):
-        camp = self.choose_camp_name()
-        if not camp:
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Top Up", "No camps exist.")
             return
-        val = simple_prompt_int("Amount to add")
-        if val is None:
-            return
-        res = top_up_food_data(camp, val)
-        messagebox.showinfo("Result", res.get("status"))
+
+        def choose_camp():
+            top = tk.Toplevel(self)
+            top.title("Top-Up Food Stock")
+            top.configure(bg=THEME_BG)
+            frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+            frame.pack(fill="both", expand=True, padx=12, pady=12)
+            ttk.Label(frame, text="Top-Up Food Stock", style="Header.TLabel").pack(pady=(0, 4))
+            ttk.Label(frame, text="Choose a camp to top up", style="Subtitle.TLabel").pack(pady=(0, 6))
+            ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+            lb_frame = ttk.Frame(frame, style="Card.TFrame")
+            lb_frame.pack(fill="both", expand=True, pady=4)
+            listbox = tk.Listbox(
+                lb_frame,
+                bg="#0b1729",
+                fg=THEME_FG,
+                selectbackground=THEME_ACCENT,
+                highlightthickness=0,
+                relief="flat",
+                width=50,
+            )
+            scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+            listbox.configure(yscrollcommand=scrollbar.set)
+            listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+            scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
+            for camp in camps:
+                listbox.insert("end", camp.name)
+
+            def next_step():
+                sel = listbox.curselection()
+                if not sel:
+                    messagebox.showerror("Error", "Please select a camp.")
+                    return
+                camp_name = listbox.get(sel[0])
+                top.destroy()
+                enter_amount(camp_name)
+
+            ttk.Button(frame, text="Next", command=next_step, style="Primary.TButton").pack(fill="x", pady=(8, 0))
+
+        def enter_amount(camp):
+            top = tk.Toplevel(self)
+            top.title("Top-Up Food Stock")
+            top.configure(bg=THEME_BG)
+            frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+            frame.pack(fill="both", expand=True, padx=12, pady=12)
+            ttk.Label(frame, text="Top-Up Food Stock", style="Header.TLabel").pack(pady=(0, 8))
+            ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+            ttk.Label(frame, text=f"Camp: {camp}", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 6))
+            ttk.Label(frame, text="Amount to add", style="FieldLabel.TLabel").pack(anchor="w")
+            amt_entry = ttk.Entry(frame, style="App.TEntry")
+            amt_entry.pack(fill="x", pady=(0, 10))
+
+            def submit():
+                try:
+                    val = int(amt_entry.get().strip())
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter a whole number.")
+                    return
+                res = top_up_food_data(camp, val)
+                messagebox.showinfo("Result", res.get("status"))
+                top.destroy()
+
+            ttk.Button(frame, text="Save", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
+
+        choose_camp()
 
     def set_pay_rate_ui(self):
-        camp = self.choose_camp_name()
+        camp = self.choose_camp_name(title="Set Pay Rate", subtitle="Choose a camp to update pay")
         if not camp:
             return
-        val = simple_prompt_int("Daily pay rate")
-        if val is None:
-            return
-        res = set_pay_rate_data(camp, val)
-        messagebox.showinfo("Result", res.get("status"))
+        top = tk.Toplevel(self)
+        top.title("Set Pay Rate")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Set Daily Pay Rate", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+        ttk.Label(frame, text=f"Camp: {camp}", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 6))
+        ttk.Label(frame, text="Daily pay rate", style="FieldLabel.TLabel").pack(anchor="w")
+        rate_entry = ttk.Entry(frame, style="App.TEntry")
+        rate_entry.pack(fill="x", pady=(0, 10))
+
+        def submit():
+            try:
+                val = int(rate_entry.get().strip())
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a whole number.")
+                return
+            res = set_pay_rate_data(camp, val)
+            messagebox.showinfo("Result", res.get("status"))
+            top.destroy()
+
+        ttk.Button(frame, text="Save", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def shortage_ui(self):
         camp = self.choose_camp_name()
@@ -481,124 +734,218 @@ class LogisticsWindow(ttk.Frame):
     def visualise_menu(self):
         top = tk.Toplevel(self)
         top.title("Visualise Camp Data")
-        tk.Button(top, text="Food Stock per Camp", command=plot_food_stock).pack(fill="x")
-        tk.Button(top, text="Camper Distribution", command=plot_camper_distribution).pack(fill="x")
-        tk.Button(top, text="Leaders per Camp", command=plot_leaders_per_camp).pack(fill="x")
-        tk.Button(top, text="Engagement Overview", command=plot_engagement_scores).pack(fill="x")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Visualise Camp Data", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+        ttk.Button(frame, text="Food Stock per Camp", command=plot_food_stock, style="Primary.TButton").pack(fill="x", pady=4)
+        ttk.Button(frame, text="Camper Distribution", command=plot_camper_distribution).pack(fill="x", pady=4)
+        ttk.Button(frame, text="Leaders per Camp", command=plot_leaders_per_camp).pack(fill="x", pady=4)
+        ttk.Button(frame, text="Engagement Overview", command=plot_engagement_scores).pack(fill="x", pady=4)
 
     def financial_settings_ui(self):
         self.set_pay_rate_ui()
 
     def create_camp_ui(self):
-        name = simple_prompt("Camp name:")
-        if not name:
-            return
-        location = simple_prompt("Location:")
-        if not location:
-            return
-        camp_type = simple_prompt_int("Camp type (1=Day, 2=Overnight, 3=Multiple Days)")
-        if camp_type not in (1, 2, 3):
-            messagebox.showerror("Error", "Camp type must be 1, 2, or 3.")
-            return
-        start_date = simple_prompt("Start date (YYYY-MM-DD):")
-        end_date = simple_prompt("End date (YYYY-MM-DD):")
-        for d in (start_date, end_date):
-            try:
-                datetime.strptime(d, "%Y-%m-%d")
-            except Exception:
-                messagebox.showerror("Error", "Invalid date format.")
+        top = tk.Toplevel(self)
+        top.title("Create Camp")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Create a new camp", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+
+        form = ttk.Frame(frame, style="Card.TFrame")
+        form.pack(fill="both", expand=True)
+
+        def add_labeled_entry(label_text):
+            lbl = ttk.Label(form, text=label_text, style="FieldLabel.TLabel")
+            lbl.pack(anchor="w", pady=(0, 2))
+            entry = ttk.Entry(form, style="App.TEntry")
+            entry.pack(fill="x", pady=(0, 8))
+            return entry
+
+        name_entry = add_labeled_entry("Camp name")
+        location_entry = add_labeled_entry("Location")
+
+        ttk.Label(form, text="Camp type (1=Day, 2=Overnight, 3=Multiple Days)", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        camp_type_entry = ttk.Entry(form, style="App.TEntry")
+        camp_type_entry.pack(fill="x", pady=(0, 8))
+
+        start_entry = add_labeled_entry("Start date (YYYY-MM-DD)")
+        end_entry = add_labeled_entry("End date (YYYY-MM-DD)")
+        food_entry = add_labeled_entry("Initial daily food stock")
+
+        def submit():
+            name = name_entry.get().strip()
+            location = location_entry.get().strip()
+            if not name or not location:
+                messagebox.showerror("Error", "Name and location are required.")
                 return
-        food_stock = simple_prompt_int("Initial daily food stock:")
-        if food_stock is None or food_stock < 0:
-            messagebox.showerror("Error", "Food stock must be a non-negative integer.")
-            return
-        read_from_file()
-        Camp(name, location, camp_type, start_date, end_date, food_stock)
-        save_to_file()
-        messagebox.showinfo("Success", f"Camp {name} created.")
+            try:
+                camp_type = int(camp_type_entry.get().strip())
+                if camp_type not in (1, 2, 3):
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "Camp type must be 1, 2, or 3.")
+                return
+            start_date = start_entry.get().strip()
+            end_date = end_entry.get().strip()
+            for d in (start_date, end_date):
+                try:
+                    datetime.strptime(d, "%Y-%m-%d")
+                except Exception:
+                    messagebox.showerror("Error", "Invalid date format.")
+                    return
+            try:
+                food_stock = int(food_entry.get().strip())
+                if food_stock < 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Error", "Food stock must be a non-negative integer.")
+                return
+
+            read_from_file()
+            Camp(name, location, camp_type, start_date, end_date, food_stock)
+            save_to_file()
+            messagebox.showinfo("Success", f"Camp {name} created.")
+            top.destroy()
+
+        ttk.Button(frame, text="Create", command=submit, style="Primary.TButton").pack(fill="x", pady=(8, 0))
 
     def edit_camp_ui(self):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Edit Camp", "No camps exist.")
             return
-        camp_names = [c.name for c in camps]
-        prompt = "Select camp number to edit:\n" + "\n".join(f"[{i+1}] {name}" for i, name in enumerate(camp_names))
-        choice = tk.simpledialog.askinteger("Edit Camp", prompt, minvalue=1, maxvalue=len(camps))
-        if choice is None:
-            return
-        camp = camps[choice - 1]
-        new_name = simple_prompt(f"New name (leave blank to keep '{camp.name}'):")
-        if new_name:
-            camp.name = new_name
-        new_loc = simple_prompt(f"New location (leave blank to keep '{camp.location}'):")
-        if new_loc:
-            camp.location = new_loc
-        new_type = simple_prompt("New camp type (1-3, blank to keep):")
-        if new_type:
+        top = tk.Toplevel(self)
+        top.title("Edit Camp")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Edit an existing camp", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+
+        names = [c.name for c in camps]
+        ttk.Label(frame, text="Select camp", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        camp_var = tk.StringVar()
+        camp_var.set(names[0])
+        ttk.OptionMenu(frame, camp_var, names[0], *names).pack(fill="x", pady=(0, 10))
+
+        form = ttk.Frame(frame, style="Card.TFrame")
+        form.pack(fill="both", expand=True)
+
+        def add_labeled_entry(label_text, initial=""):
+            ttk.Label(form, text=label_text, style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+            entry = ttk.Entry(form, style="App.TEntry")
+            entry.insert(0, initial)
+            entry.pack(fill="x", pady=(0, 8))
+            return entry
+
+        camp = camps[0]
+        name_entry = add_labeled_entry("Name", camp.name)
+        loc_entry = add_labeled_entry("Location", camp.location)
+        type_entry = add_labeled_entry("Camp type (1-3)", str(camp.camp_type))
+        start_entry = add_labeled_entry("Start date (YYYY-MM-DD)", camp.start_date)
+        end_entry = add_labeled_entry("End date (YYYY-MM-DD)", camp.end_date)
+        food_entry = add_labeled_entry("Daily food stock", str(camp.food_stock))
+        pay_entry = add_labeled_entry("Daily pay rate", str(camp.pay_rate))
+
+        def on_select(*args):
+            selected = camp_var.get()
+            for c in camps:
+                if c.name == selected:
+                    name_entry.delete(0, tk.END); name_entry.insert(0, c.name)
+                    loc_entry.delete(0, tk.END); loc_entry.insert(0, c.location)
+                    type_entry.delete(0, tk.END); type_entry.insert(0, str(c.camp_type))
+                    start_entry.delete(0, tk.END); start_entry.insert(0, c.start_date)
+                    end_entry.delete(0, tk.END); end_entry.insert(0, c.end_date)
+                    food_entry.delete(0, tk.END); food_entry.insert(0, str(c.food_stock))
+                    pay_entry.delete(0, tk.END); pay_entry.insert(0, str(c.pay_rate))
+                    break
+        camp_var.trace_add("write", on_select)
+
+        def submit():
+            selected = camp_var.get()
+            camp_obj = next((c for c in camps if c.name == selected), None)
+            if not camp_obj:
+                return
             try:
-                ct = int(new_type)
-                if ct in (1, 2, 3):
-                    camp.camp_type = ct
+                ct = int(type_entry.get().strip())
+                if ct not in (1, 2, 3):
+                    raise ValueError
             except ValueError:
-                messagebox.showerror("Error", "Invalid camp type.")
+                messagebox.showerror("Error", "Camp type must be 1, 2, or 3.")
                 return
-        new_start = simple_prompt(f"New start date (YYYY-MM-DD, blank to keep {camp.start_date}):")
-        if new_start:
             try:
-                datetime.strptime(new_start, "%Y-%m-%d")
-                camp.start_date = new_start
-            except Exception:
-                messagebox.showerror("Error", "Invalid start date.")
-                return
-        new_end = simple_prompt(f"New end date (YYYY-MM-DD, blank to keep {camp.end_date}):")
-        if new_end:
-            try:
-                datetime.strptime(new_end, "%Y-%m-%d")
-                camp.end_date = new_end
-            except Exception:
-                messagebox.showerror("Error", "Invalid end date.")
-                return
-        new_food = simple_prompt("New daily food stock (blank to keep):")
-        if new_food:
-            try:
-                nf = int(new_food)
+                nf = int(food_entry.get().strip())
                 if nf < 0:
                     raise ValueError
-                camp.food_stock = nf
             except ValueError:
                 messagebox.showerror("Error", "Invalid food stock.")
                 return
-        new_pay = simple_prompt("New daily pay rate (blank to keep):")
-        if new_pay:
             try:
-                pr = int(new_pay)
+                pr = int(pay_entry.get().strip())
                 if pr < 0:
                     raise ValueError
-                camp.pay_rate = pr
             except ValueError:
                 messagebox.showerror("Error", "Invalid pay rate.")
                 return
-        save_to_file()
-        messagebox.showinfo("Success", "Camp updated.")
+            new_start = start_entry.get().strip()
+            new_end = end_entry.get().strip()
+            for d in (new_start, new_end):
+                try:
+                    datetime.strptime(d, "%Y-%m-%d")
+                except Exception:
+                    messagebox.showerror("Error", "Invalid date format.")
+                    return
+
+            camp_obj.name = name_entry.get().strip() or camp_obj.name
+            camp_obj.location = loc_entry.get().strip() or camp_obj.location
+            camp_obj.camp_type = ct
+            camp_obj.start_date = new_start or camp_obj.start_date
+            camp_obj.end_date = new_end or camp_obj.end_date
+            camp_obj.food_stock = nf
+            camp_obj.pay_rate = pr
+            save_to_file()
+            messagebox.showinfo("Success", "Camp updated.")
+            top.destroy()
+
+        ttk.Button(frame, text="Save changes", command=submit, style="Primary.TButton").pack(fill="x", pady=(8, 0))
 
     def delete_camp_ui(self):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Delete Camp", "No camps exist.")
             return
-        camp_names = [c.name for c in camps]
-        prompt = "Select camp number to delete:\n" + "\n".join(f"[{i+1}] {name}" for i, name in enumerate(camp_names))
-        choice = tk.simpledialog.askinteger("Delete Camp", prompt, minvalue=1, maxvalue=len(camps))
-        if choice is None:
-            return
-        camp = camps[choice - 1]
-        if not messagebox.askyesno("Confirm", f"Delete camp '{camp.name}'?"):
-            return
-        del camps[choice - 1]
-        Camp.all_camps = camps
-        save_to_file()
-        messagebox.showinfo("Success", f"Camp '{camp.name}' deleted.")
+        top = tk.Toplevel(self)
+        top.title("Delete Camp")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Delete a camp", style="Header.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 10))
+        names = [c.name for c in camps]
+        ttk.Label(frame, text="Select camp to delete", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        camp_var = tk.StringVar()
+        camp_var.set(names[0])
+        ttk.OptionMenu(frame, camp_var, names[0], *names).pack(fill="x", pady=(0, 8))
+
+        def delete():
+            selected = camp_var.get()
+            camp_obj = next((c for c in camps if c.name == selected), None)
+            if not camp_obj:
+                return
+            if not messagebox.askyesno("Confirm", f"Delete camp '{camp_obj.name}'?"):
+                return
+            camps.remove(camp_obj)
+            Camp.all_camps = camps
+            save_to_file()
+            messagebox.showinfo("Success", f"Camp '{camp_obj.name}' deleted.")
+            top.destroy()
+
+        ttk.Button(frame, text="Delete", command=delete, style="Danger.TButton").pack(fill="x", pady=(8, 0))
     def messaging_ui(self):
         convo_win = tk.Toplevel(self)
         convo_win.title("Messaging")
@@ -606,16 +953,28 @@ class LogisticsWindow(ttk.Frame):
         frame = ttk.Frame(convo_win, padding=12, style="Card.TFrame")
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="Conversations").pack()
-        listbox = tk.Listbox(frame)
-        listbox.pack(fill="both", expand=True, pady=6)
+        lb_frame = ttk.Frame(frame, style="Card.TFrame")
+        lb_frame.pack(fill="both", expand=True, pady=6)
+        listbox = tk.Listbox(
+            lb_frame,
+            bg="#0b1729",
+            fg=THEME_FG,
+            selectbackground=THEME_ACCENT,
+            highlightthickness=0,
+            relief="flat",
+        )
+        scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+        scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
         partners = get_conversations_for_user(self.username)
         for p in partners:
             listbox.insert("end", p)
         ttk.Label(frame, text="Recipient:").pack()
-        recipient_entry = ttk.Entry(frame)
+        recipient_entry = ttk.Entry(frame, style="App.TEntry")
         recipient_entry.pack(fill="x", pady=2)
         ttk.Label(frame, text="Message:").pack()
-        message_entry = ttk.Entry(frame, width=50)
+        message_entry = ttk.Entry(frame, width=50, style="App.TEntry")
         message_entry.pack(fill="x", pady=2)
 
         def send():
@@ -626,15 +985,54 @@ class LogisticsWindow(ttk.Frame):
                 messagebox.showinfo("Sent", f"Message sent to {to}")
         ttk.Button(frame, text="Send", command=send).pack(pady=8, fill="x")
 
-    def choose_camp_name(self):
+    def choose_camp_name(self, title="Select a camp", subtitle=None):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Camps", "No camps exist.")
             return None
-        indices = select_camp_dialog("Select a camp", camps, allow_multiple=False)
-        if not indices:
-            return None
-        return camps[indices[0]].name
+
+        top = tk.Toplevel(self)
+        top.title(title)
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text=title, style="Header.TLabel").pack(pady=(0, 4))
+        if subtitle:
+            ttk.Label(frame, text=subtitle, style="Subtitle.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        lb_frame = ttk.Frame(frame, style="Card.TFrame")
+        lb_frame.pack(fill="both", expand=True, pady=4)
+        listbox = tk.Listbox(
+            lb_frame,
+            bg="#0b1729",
+            fg=THEME_FG,
+            selectbackground=THEME_ACCENT,
+            highlightthickness=0,
+            relief="flat",
+            width=50,
+        )
+        scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+        scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
+        for camp in camps:
+            listbox.insert("end", camp.name)
+
+        result = {"camp": None}
+
+        def submit():
+            sel = listbox.curselection()
+            if not sel:
+                messagebox.showerror("Error", "Please select a camp.")
+                return
+            result["camp"] = listbox.get(sel[0])
+            top.destroy()
+
+        ttk.Button(frame, text="Select", command=submit, style="Primary.TButton").pack(fill="x", pady=(8, 0))
+        top.grab_set()
+        top.wait_window()
+        return result["camp"]
 
     def logout(self):
         state_info = capture_window_state(self.master)
@@ -652,23 +1050,28 @@ class ScoutWindow(ttk.Frame):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=16, style="Card.TFrame", width=720)
-        wrapper.pack(expand=True, pady=8)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
+        wrapper.pack(expand=True, padx=16, pady=12)
 
-        ttk.Label(wrapper, text="Scout Leader Menu", style="Header.TLabel").pack(pady=(0, 10))
+        self.logo_small = load_logo(64)
+        if self.logo_small:
+            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
+        ttk.Label(wrapper, text="Scout Leader Menu", style="Header.TLabel").pack(pady=(0, 4))
+        ttk.Label(wrapper, text="Scouting tools", style="Subtitle.TLabel").pack(pady=(0, 10))
 
-        actions = ttk.LabelFrame(wrapper, text="Camp Actions", padding=10)
-        actions.pack(fill="both", expand=True, pady=(0, 8))
+        actions = ttk.LabelFrame(wrapper, text="Camp Actions", padding=12, style="Card.TFrame")
+        actions.pack(fill="both", expand=True, pady=(0, 12))
         for text, cmd in [
             ("Select camps to supervise", self.select_camps_ui),
             ("Bulk assign campers from CSV", self.bulk_assign_ui),
             ("Assign food amount per camper per day", self.food_req_ui),
             ("Record daily activity outcomes / incidents", self.record_activity_ui),
         ]:
-            ttk.Button(actions, text=text, command=cmd).pack(fill="x", pady=2)
+            btn_style = "Primary.TButton" if "Select camps" in text else "TButton"
+            ttk.Button(actions, text=text, command=cmd, style=btn_style).pack(fill="x", pady=2)
 
-        stats_frame = ttk.LabelFrame(wrapper, text="Insights & Messaging", padding=10)
-        stats_frame.pack(fill="both", expand=True)
+        stats_frame = ttk.LabelFrame(wrapper, text="Insights & Messaging", padding=12, style="Card.TFrame")
+        stats_frame.pack(fill="both", expand=True, pady=(0, 12))
         for text, cmd in [
             ("View camp statistics and trends", self.stats_ui),
             ("Messaging", self.messaging_ui),
@@ -702,26 +1105,75 @@ class ScoutWindow(ttk.Frame):
         if not camps:
             messagebox.showinfo("Bulk Assign", "No camps exist.")
             return
-        indices = select_camp_dialog("Select camp for camper import", camps, allow_multiple=False)
-        if not indices:
-            return
-        camp = camps[indices[0]]
-        filepath = filedialog.askopenfilename(title="Select campers CSV", filetypes=[("CSV files", "*.csv")])
-        if not filepath:
-            return
-        res = bulk_assign_campers_from_csv(camp.name, filepath)
-        status = res.get("status")
-        if status == "ok":
-            added = res.get("added", [])
-            messagebox.showinfo("Success", f"Assigned {len(added)} campers to {camp.name}.")
-        elif status == "file_not_found":
-            messagebox.showerror("Error", "CSV file not found.")
-        elif status == "camp_not_found":
-            messagebox.showerror("Error", "Camp not found.")
-        elif status == "no_campers":
-            messagebox.showinfo("Result", "No campers in CSV.")
-        else:
-            messagebox.showerror("Error", status or "Unknown error")
+        top = tk.Toplevel(self)
+        top.title("Bulk Assign Campers")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Bulk assign campers from CSV", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Label(frame, text="Select a camp and CSV to import campers.", style="Subtitle.TLabel").pack(pady=(0, 8))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        # Camp list
+        lb_frame = ttk.Frame(frame, style="Card.TFrame")
+        lb_frame.pack(fill="both", expand=True, pady=4)
+        camp_list = tk.Listbox(
+            lb_frame,
+            bg="#0b1729",
+            fg=THEME_FG,
+            selectbackground=THEME_ACCENT,
+            highlightthickness=0,
+            relief="flat",
+            height=6,
+        )
+        scroll = ttk.Scrollbar(lb_frame, orient="vertical", command=camp_list.yview)
+        camp_list.configure(yscrollcommand=scroll.set)
+        camp_list.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+        scroll.pack(side="right", fill="y", padx=(0, 4), pady=4)
+        for camp in camps:
+            camp_list.insert("end", f"{camp.name} ({camp.location})")
+
+        ttk.Separator(frame).pack(fill="x", pady=(4, 8))
+
+        # File picker
+        path_var = tk.StringVar()
+        ttk.Label(frame, text="CSV file", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        path_entry = ttk.Entry(frame, textvariable=path_var, style="App.TEntry")
+        path_entry.pack(fill="x", pady=(0, 6))
+
+        def browse():
+            fp = filedialog.askopenfilename(title="Select campers CSV", filetypes=[("CSV files", "*.csv")])
+            if fp:
+                path_var.set(fp)
+
+        ttk.Button(frame, text="Browse", command=browse).pack(fill="x", pady=(0, 10))
+
+        def submit():
+            sel = camp_list.curselection()
+            if not sel:
+                messagebox.showerror("Error", "Please select a camp.")
+                return
+            filepath = path_var.get().strip()
+            if not filepath:
+                messagebox.showerror("Error", "Please choose a CSV file.")
+                return
+            camp = camps[sel[0]]
+            res = bulk_assign_campers_from_csv(camp.name, filepath)
+            status = res.get("status")
+            if status == "ok":
+                added = res.get("added", [])
+                messagebox.showinfo("Success", f"Assigned {len(added)} campers to {camp.name}.")
+                top.destroy()
+            elif status == "file_not_found":
+                messagebox.showerror("Error", "CSV file not found.")
+            elif status == "camp_not_found":
+                messagebox.showerror("Error", "Camp not found.")
+            elif status == "no_campers":
+                messagebox.showinfo("Result", "No campers in CSV.")
+            else:
+                messagebox.showerror("Error", status or "Unknown error")
+
+        ttk.Button(frame, text="Import", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def food_req_ui(self):
         camps = read_from_file()
@@ -747,26 +1199,64 @@ class ScoutWindow(ttk.Frame):
         if not camps:
             messagebox.showinfo("Activity", "No camps exist.")
             return
-        indices = select_camp_dialog("Select camp for activity entry", camps, allow_multiple=False)
-        if not indices:
-            return
-        camp = camps[indices[0]].name
-        date = simple_prompt("Date (YYYY-MM-DD)")
-        if not date:
-            return
-        activity_name = simple_prompt("Activity name (optional)") or ""
-        activity_time = simple_prompt("Time (optional)") or ""
-        notes = simple_prompt("Notes/outcomes/incidents")
-        if notes is None:
-            return
-        food = simple_prompt("Food units used (optional)")
-        food_units = int(food) if food and food.isdigit() else None
-        res = record_activity_entry_data(camp, date, activity_name, activity_time, notes, food_units)
-        status = res.get("status")
-        if status == "ok":
-            messagebox.showinfo("Success", f"Entry recorded for {camp} on {date}.")
-        else:
-            messagebox.showerror("Error", status or "Unknown error")
+        top = tk.Toplevel(self)
+        top.title("Record Activity")
+        top.configure(bg=THEME_BG)
+        frame = ttk.Frame(top, padding=14, style="Card.TFrame")
+        frame.pack(fill="both", expand=True, padx=12, pady=12)
+        ttk.Label(frame, text="Record daily activity", style="Header.TLabel").pack(pady=(0, 6))
+        ttk.Separator(frame).pack(fill="x", pady=(0, 8))
+
+        ttk.Label(frame, text="Camp", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        camp_var = tk.StringVar(value=camps[0].name)
+        ttk.OptionMenu(frame, camp_var, camps[0].name, *[c.name for c in camps]).pack(fill="x", pady=(0, 8))
+
+        def add_entry(label, initial=""):
+            ttk.Label(frame, text=label, style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+            entry = ttk.Entry(frame, style="App.TEntry")
+            if initial:
+                entry.insert(0, initial)
+            entry.pack(fill="x", pady=(0, 6))
+            return entry
+
+        date_entry = add_entry("Date (YYYY-MM-DD)")
+        activity_entry = add_entry("Activity name (optional)")
+        time_entry = add_entry("Time (optional)")
+
+        ttk.Label(frame, text="Notes / outcomes / incidents", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        notes_text = tk.Text(frame, height=4, bg="#0b1729", fg=THEME_FG, highlightthickness=0, relief="flat")
+        notes_text.pack(fill="both", expand=True, pady=(0, 8))
+
+        ttk.Label(frame, text="Food units used (optional)", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        food_entry = ttk.Entry(frame, style="App.TEntry")
+        food_entry.pack(fill="x", pady=(0, 10))
+
+        def submit():
+            camp = camp_var.get()
+            date = date_entry.get().strip()
+            if not date:
+                messagebox.showerror("Error", "Date is required.")
+                return
+            activity_name = activity_entry.get().strip()
+            activity_time = time_entry.get().strip()
+            notes = notes_text.get("1.0", "end").strip()
+            food_units = None
+            food_val = food_entry.get().strip()
+            if food_val:
+                try:
+                    food_units = int(food_val)
+                except ValueError:
+                    messagebox.showerror("Error", "Food units must be a whole number.")
+                    return
+            res = record_activity_entry_data(camp, date, activity_name, activity_time, notes, food_units)
+            status = res.get("status")
+            if status == "ok":
+                messagebox.showinfo("Success", f"Entry recorded for {camp} on {date}.")
+                top.destroy()
+            else:
+                messagebox.showerror("Error", status or "Unknown error")
+
+        ttk.Button(frame, text="Save Entry", command=submit, style="Primary.TButton").pack(fill="x", pady=(4, 0))
 
     def stats_ui(self):
         camps = read_from_file()
@@ -808,17 +1298,29 @@ class ScoutWindow(ttk.Frame):
         convo_win.configure(bg=THEME_BG)
         frame = ttk.Frame(convo_win, padding=12, style="Card.TFrame")
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="Conversations").pack()
-        listbox = tk.Listbox(frame)
-        listbox.pack(fill="both", expand=True, pady=6)
+        ttk.Label(frame, text="Conversations", style="Header.TLabel").pack()
+        lb_frame = ttk.Frame(frame, style="Card.TFrame")
+        lb_frame.pack(fill="both", expand=True, pady=6)
+        listbox = tk.Listbox(
+            lb_frame,
+            bg="#0b1729",
+            fg=THEME_FG,
+            selectbackground=THEME_ACCENT,
+            highlightthickness=0,
+            relief="flat",
+        )
+        scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+        scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
         partners = get_conversations_for_user(self.username)
         for p in partners:
             listbox.insert("end", p)
-        ttk.Label(frame, text="Recipient:").pack()
-        recipient_entry = ttk.Entry(frame)
+        ttk.Label(frame, text="Recipient:", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
+        recipient_entry = ttk.Entry(frame, style="App.TEntry")
         recipient_entry.pack(fill="x", pady=2)
-        ttk.Label(frame, text="Message:").pack()
-        message_entry = ttk.Entry(frame, width=50)
+        ttk.Label(frame, text="Message:", style="FieldLabel.TLabel").pack(anchor="w", pady=(6, 2))
+        message_entry = ttk.Entry(frame, width=50, style="App.TEntry")
         message_entry.pack(fill="x", pady=2)
 
         def send():
@@ -827,7 +1329,7 @@ class ScoutWindow(ttk.Frame):
             if to and msg:
                 send_message(self.username, to, msg)
                 messagebox.showinfo("Sent", f"Message sent to {to}")
-        ttk.Button(frame, text="Send", command=send).pack(pady=8, fill="x")
+        ttk.Button(frame, text="Send", command=send, style="Primary.TButton").pack(pady=8, fill="x")
 
     def logout(self):
         state_info = capture_window_state(self.master)
@@ -859,10 +1361,24 @@ def select_camp_dialog(title, camps, allow_multiple=False, allow_cancel=False):
     wrapper.pack(fill="both", expand=True)
 
     selectmode = "extended" if allow_multiple else "browse"
-    listbox = tk.Listbox(wrapper, selectmode=selectmode, width=60)
+    lb_frame = ttk.Frame(wrapper, style="Card.TFrame")
+    lb_frame.pack(fill="both", expand=True, padx=6, pady=6)
+    listbox = tk.Listbox(
+        lb_frame,
+        selectmode=selectmode,
+        width=60,
+        bg="#0b1729",
+        fg=THEME_FG,
+        selectbackground=THEME_ACCENT,
+        highlightthickness=0,
+        relief="flat",
+    )
+    scrollbar = ttk.Scrollbar(lb_frame, orient="vertical", command=listbox.yview)
+    listbox.configure(yscrollcommand=scrollbar.set)
+    listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
+    scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
     for camp in camps:
         listbox.insert("end", f"{camp.name} ({camp.location}) {camp.start_date}->{camp.end_date}")
-    listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
     result = {"indices": None}
 
