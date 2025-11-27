@@ -168,14 +168,17 @@ class AdminWindow(ttk.Frame):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
-        wrapper.pack(expand=True, padx=16, pady=12)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
+        wrapper.pack(expand=True, padx=20, pady=16)
 
         self.logo_small = load_logo(64)
+        header = ttk.Frame(wrapper, style="Card.TFrame")
+        header.pack(fill="x", pady=(0, 12))
+        header.columnconfigure(1, weight=1)
         if self.logo_small:
-            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
-        ttk.Label(wrapper, text="Administrator Menu", style="Header.TLabel").pack(pady=(0, 4))
-        ttk.Label(wrapper, text="Admin tools", style="Subtitle.TLabel").pack(pady=(0, 10))
+            ttk.Label(header, image=self.logo_small, background=THEME_CARD).grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 8))
+        ttk.Label(header, text="Administrator", style="Header.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(header, text="Admin tools", style="Subtitle.TLabel").grid(row=1, column=1, sticky="w")
 
         user_frame = ttk.LabelFrame(wrapper, text="User Management", padding=12, style="Card.TFrame")
         user_frame.pack(fill="both", expand=True, pady=(0, 12))
@@ -471,37 +474,42 @@ class LogisticsWindow(ttk.Frame):
     def __init__(self, master, username):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
+        master.minsize(640, 640)
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
-        wrapper.pack(expand=True, padx=16, pady=12)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
+        wrapper.pack(expand=True, padx=20, pady=16)
 
         self.logo_small = load_logo(64)
+        header = ttk.Frame(wrapper, style="Card.TFrame")
+        header.pack(fill="x", pady=(0, 12))
+        header.columnconfigure(1, weight=1)
         if self.logo_small:
-            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
-        ttk.Label(wrapper, text="Logisitics Coordiator Menu", style="Header.TLabel").pack(pady=(0, 4))
-        ttk.Label(wrapper, text="Logistics overview", style="Subtitle.TLabel").pack(pady=(0, 10))
+            ttk.Label(header, image=self.logo_small, background=THEME_CARD).grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 8))
+        ttk.Label(header, text="Logistics Coordinator", style="Header.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(header, text="Logistics overview", style="Subtitle.TLabel").grid(row=1, column=1, sticky="w")
 
-        camp_frame = ttk.LabelFrame(wrapper, text="Camps", padding=12, style="Card.TFrame")
-        camp_frame.pack(fill="both", expand=True, pady=(0, 12))
+        camp_frame = ttk.LabelFrame(wrapper, text="Camp Management", padding=12, style="Card.TFrame")
+        camp_frame.pack(fill="both", expand=True, pady=(0, 14))
+        ttk.Label(camp_frame, text="Pick a camp to create, edit, or delete.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 6))
         for text, cmd in [
-            ("Manage and Create Camps", self.manage_camps_menu),
-            ("Manage Food Allocation", self.food_allocation_menu),
-            ("Access Financial Settings", self.financial_settings_ui),
+            ("Manage Camps", self.manage_camps_menu),
+            ("Food Allocation", self.food_allocation_menu),
+            ("Financial Settings", self.financial_settings_ui),
         ]:
-            btn_style = "Primary.TButton" if "Manage and Create" in text else "TButton"
-            ttk.Button(camp_frame, text=text, command=cmd, style=btn_style).pack(fill="x", pady=2)
+            btn_style = "Primary.TButton" if "Manage" in text else "TButton"
+            ttk.Button(camp_frame, text=text, command=cmd, style=btn_style).pack(fill="x", pady=6)
 
-        viz_frame = ttk.LabelFrame(wrapper, text="Insight & Notifications", padding=12, style="Card.TFrame")
-        viz_frame.pack(fill="both", expand=True, pady=(0, 12))
+        viz_frame = ttk.LabelFrame(wrapper, text="Insights & Notifications", padding=12, style="Card.TFrame")
+        viz_frame.pack(fill="both", expand=True, pady=(0, 14))
         for text, cmd in [
-            ("View Camp Dashboard", self.dashboard_ui),
-            ("Visualise Camp Data", self.visualise_menu),
-            ("Access Notifications", self.notifications_ui),
+            ("Dashboard", self.dashboard_ui),
+            ("Visualise Data", self.visualise_menu),
+            ("Notifications", self.notifications_ui),
             ("Messaging", self.messaging_ui),
         ]:
-            ttk.Button(viz_frame, text=text, command=cmd).pack(fill="x", pady=2)
+            ttk.Button(viz_frame, text=text, command=cmd).pack(fill="x", pady=6)
 
-        ttk.Button(wrapper, text="Logout", command=self.logout, style="Danger.TButton").pack(fill="x", pady=2)
+        ttk.Button(wrapper, text="Logout", command=self.logout, style="Danger.TButton").pack(fill="x", pady=8)
 
     def manage_camps_menu(self):
         top = tk.Toplevel(self)
@@ -1049,36 +1057,41 @@ class ScoutWindow(ttk.Frame):
     def __init__(self, master, username):
         super().__init__(master, padding=16, style="App.TFrame")
         self.username = username
+        master.minsize(640, 640)
         self.pack(fill="both", expand=True)
-        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=480)
-        wrapper.pack(expand=True, padx=16, pady=12)
+        wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
+        wrapper.pack(expand=True, padx=20, pady=16)
 
         self.logo_small = load_logo(64)
+        header = ttk.Frame(wrapper, style="Card.TFrame")
+        header.pack(fill="x", pady=(0, 12))
+        header.columnconfigure(1, weight=1)
         if self.logo_small:
-            ttk.Label(wrapper, image=self.logo_small, background=THEME_CARD).pack(anchor="w", pady=(0, 6))
-        ttk.Label(wrapper, text="Scout Leader Menu", style="Header.TLabel").pack(pady=(0, 4))
-        ttk.Label(wrapper, text="Scouting tools", style="Subtitle.TLabel").pack(pady=(0, 10))
+            ttk.Label(header, image=self.logo_small, background=THEME_CARD).grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 8))
+        ttk.Label(header, text="Scout Leader", style="Header.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(header, text="Scouting tools", style="Subtitle.TLabel").grid(row=1, column=1, sticky="w")
 
         actions = ttk.LabelFrame(wrapper, text="Camp Actions", padding=12, style="Card.TFrame")
-        actions.pack(fill="both", expand=True, pady=(0, 12))
+        actions.pack(fill="both", expand=True, pady=(0, 14))
+        ttk.Label(actions, text="Select camps, import campers, and set food needs.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 6))
         for text, cmd in [
-            ("Select camps to supervise", self.select_camps_ui),
-            ("Bulk assign campers from CSV", self.bulk_assign_ui),
-            ("Assign food amount per camper per day", self.food_req_ui),
-            ("Record daily activity outcomes / incidents", self.record_activity_ui),
+            ("Select Camps", self.select_camps_ui),
+            ("Import Campers", self.bulk_assign_ui),
+            ("Set Food per Camper", self.food_req_ui),
+            ("Record Activity", self.record_activity_ui),
         ]:
             btn_style = "Primary.TButton" if "Select camps" in text else "TButton"
-            ttk.Button(actions, text=text, command=cmd, style=btn_style).pack(fill="x", pady=2)
+            ttk.Button(actions, text=text, command=cmd, style=btn_style).pack(fill="x", pady=6)
 
         stats_frame = ttk.LabelFrame(wrapper, text="Insights & Messaging", padding=12, style="Card.TFrame")
-        stats_frame.pack(fill="both", expand=True, pady=(0, 12))
+        stats_frame.pack(fill="both", expand=True, pady=(0, 14))
         for text, cmd in [
-            ("View camp statistics and trends", self.stats_ui),
+            ("View Stats", self.stats_ui),
             ("Messaging", self.messaging_ui),
             ("Logout", self.logout),
         ]:
             style = "Danger.TButton" if "Logout" in text else "TButton"
-            ttk.Button(stats_frame, text=text, command=cmd, style=style).pack(fill="x", pady=2)
+            ttk.Button(stats_frame, text=text, command=cmd, style=style).pack(fill="x", pady=6)
 
     def select_camps_ui(self):
         camps = read_from_file()
