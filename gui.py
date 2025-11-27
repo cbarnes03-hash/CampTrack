@@ -1609,10 +1609,11 @@ def launch_login():
     root = tk.Tk()
     root.withdraw()
     root.title("CampTrack Login")
-    root.minsize(760, 600)
+    # Start larger so role windows retain space for full cards/log out buttons
+    root.minsize(900, 720)
     init_style(root)
     LoginWindow(root)
-    center_window(root, width=820, height=660)
+    center_window(root, width=960, height=760)
     root.deiconify()
     root.mainloop()
 
