@@ -42,6 +42,71 @@ THEME_ACCENT_ACTIVE = "#43a047"
 THEME_ACCENT_PRESSED = "#388e3c"
 
 
+_GIF_CACHE = {}
+
+
+def _load_gif_frames_raw(name):
+    """Return list of raw RGBA frames for a gif, cached."""
+    if name in _GIF_CACHE:
+        return _GIF_CACHE[name]
+    path = os.path.join(os.path.dirname(__file__), name)
+    frames = []
+    if os.path.exists(path):
+        try:
+            im = Image.open(path)
+            while True:
+                frames.append(im.copy().convert("RGBA"))
+                im.seek(im.tell() + 1)
+        except EOFError:
+            pass
+        except Exception:
+            frames = []
+    _GIF_CACHE[name] = frames
+    return frames
+
+
+def _attach_gif_background(container, gif_name="campfire.gif", delay=100, start_delay=100):
+    """Attach a full-window animated gif to a container."""
+    container.bg_label = tk.Label(container, bd=0, highlightthickness=0)
+    container.bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+    container.bg_label.configure(bg=THEME_BG)
+    container.bg_label.lower()
+    container._bg_frames_raw = _load_gif_frames_raw(gif_name)
+    container._bg_frame_index = 0
+    container._bg_photo = None
+    container._bg_last_size = None
+    container._bg_resized_cache = {}
+
+    def render(index):
+        if not container._bg_frames_raw:
+            return
+        w = max(container.winfo_width(), container.winfo_reqwidth(), 1)
+        h = max(container.winfo_height(), container.winfo_reqheight(), 1)
+        if w == 1 and h == 1:
+            container.after(30, lambda: render(index))
+            return
+        size_key = (w, h)
+        if size_key != container._bg_last_size:
+            resized = [ImageTk.PhotoImage(frame.resize((w, h), Image.LANCZOS)) for frame in container._bg_frames_raw]
+            container._bg_resized_cache[size_key] = resized
+            container._bg_last_size = size_key
+        frames = container._bg_resized_cache.get(size_key)
+        if frames:
+            frame = frames[index % len(frames)]
+            container.bg_label.configure(image=frame)
+
+    def animate():
+        if not container._bg_frames_raw:
+            return
+        render(container._bg_frame_index)
+        container._bg_frame_index = (container._bg_frame_index + 1) % max(1, len(container._bg_frames_raw))
+        container.after(delay, animate)
+
+    if container._bg_frames_raw:
+        render(0)
+        container.after(start_delay, animate)
+
+
 def load_logo(max_px=260):
     logo_path = os.path.join(os.path.dirname(__file__), "image.png")
     if not os.path.exists(logo_path):
@@ -55,13 +120,24 @@ def load_logo(max_px=260):
 
 class LoginWindow(ttk.Frame):
     def __init__(self, master):
-        super().__init__(master, padding=12, style="App.TFrame")
+        super().__init__(master, padding=0, style="App.TFrame")
         self.master = master
         self.pack(fill="both", expand=True)
+
+        # --- Animated background ---
+        self.bg_label = tk.Label(self, bd=0, highlightthickness=0)
+        self.bg_label.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.bg_label.configure(bg=THEME_BG)
+        self.bg_frames = []
+        self.bg_frame_index = 0
+        self._load_campfire_frames()
+        if self.bg_frames:
+            # delay start so login shows theme bg momentarily
+            self.after(100, self._animate_background)
+
         # center the login form in a padded, fixed-width container
         card = ttk.Frame(self, padding=24, width=420, style="Card.TFrame")
-        card.pack(expand=True, padx=16, pady=16)
-        card.pack_propagate(False)
+        card.place(relx=0.5, rely=0.5, anchor="center")
         card.columnconfigure(0, weight=1)
 
         row = 0
@@ -122,6 +198,38 @@ class LoginWindow(ttk.Frame):
             style="Primary.TButton",
         ).grid(row=row, column=0, pady=(16, 0), sticky="ew")
 
+    def _load_campfire_frames(self):
+        """Load frames from campfire.gif into self.bg_frames."""
+        gif_path = os.path.join(os.path.dirname(__file__), "campfire.gif")
+        if not os.path.exists(gif_path):
+            return
+        try:
+            im = Image.open(gif_path)
+        except Exception:
+            return
+
+        frames = []
+        try:
+            while True:
+                frame = im.copy()
+                w = max(self.master.winfo_screenwidth(), 800)
+                h = max(self.master.winfo_screenheight(), 700)
+                frame = frame.resize((w, h), Image.LANCZOS)
+                frames.append(ImageTk.PhotoImage(frame))
+                im.seek(im.tell() + 1)
+        except EOFError:
+            pass
+        self.bg_frames = frames
+
+    def _animate_background(self):
+        """Loop through GIF frames on the background label."""
+        if not self.bg_frames:
+            return
+        frame = self.bg_frames[self.bg_frame_index]
+        self.bg_label.configure(image=frame)
+        self.bg_frame_index = (self.bg_frame_index + 1) % len(self.bg_frames)
+        self.after(80, self._animate_background)
+
     def attempt_login(self):
         state_info = capture_window_state(self.master)
 
@@ -150,6 +258,7 @@ class LoginWindow(ttk.Frame):
             root = self.master
             for child in list(root.winfo_children()):
                 child.destroy()
+            root.configure(bg=THEME_BG)
             root.title(f"CampTrack - {role}")
             init_style(root)
             apply_window_state(root, state_info, min_w=760, min_h=600)
@@ -165,8 +274,9 @@ class LoginWindow(ttk.Frame):
 
 class AdminWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master, padding=16, style="App.TFrame")
+        super().__init__(master, padding=0, style="App.TFrame")
         self.username = username
+        _attach_gif_background(self, gif_name="campfire1.gif", start_delay=500)
         self.pack(fill="both", expand=True)
         wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
         wrapper.pack(expand=True, padx=20, pady=16)
@@ -472,8 +582,9 @@ class AdminWindow(ttk.Frame):
 
 class LogisticsWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master, padding=16, style="App.TFrame")
+        super().__init__(master, padding=0, style="App.TFrame")
         self.username = username
+        _attach_gif_background(self, gif_name="campfire1.gif", delay=140, start_delay=500)
         master.minsize(640, 640)
         self.pack(fill="both", expand=True)
         wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
@@ -1055,8 +1166,9 @@ class LogisticsWindow(ttk.Frame):
 
 class ScoutWindow(ttk.Frame):
     def __init__(self, master, username):
-        super().__init__(master, padding=16, style="App.TFrame")
+        super().__init__(master, padding=0, style="App.TFrame")
         self.username = username
+        _attach_gif_background(self, gif_name="campfire1.gif", delay=140, start_delay=500)
         master.minsize(640, 640)
         self.pack(fill="both", expand=True)
         wrapper = ttk.Frame(self, padding=18, style="Card.TFrame", width=520)
@@ -1611,6 +1723,7 @@ def launch_login():
     root.title("CampTrack Login")
     # Start larger so role windows retain space for full cards/log out buttons
     root.minsize(900, 720)
+    root.configure(bg=THEME_BG)
     init_style(root)
     LoginWindow(root)
     center_window(root, width=960, height=760)
