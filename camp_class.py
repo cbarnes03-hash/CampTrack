@@ -21,6 +21,7 @@ class Camp:
         self.daily_food_usage = {}
         self.daily_records = {}
         self.pay_rate = 0
+        self.group_chat = []  # Add group chat to each camp
 
         Camp.all_camps.append(self)
 
@@ -29,6 +30,7 @@ class Camp:
     def assign_leader(self, leader_choice):
         if leader_choice not in self.scout_leaders:
             self.scout_leaders.append(leader_choice)
+            self.message_group_chat("System", f"{leader_choice} has joined the group chat.")
         else:
             print(f"\nLeader '{leader_choice}' is already assigned to this camp.")
 
@@ -51,6 +53,19 @@ class Camp:
         if date not in self.daily_records:
             self.daily_records[date] = []
         self.daily_records[date].append(notes)
+
+    def message_group_chat(self, from_user, message_text):
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message = {
+            "from": from_user,
+            "text": message_text,
+            "timestamp": timestamp
+        }
+        self.group_chat.append(message)
+        save_to_file()
+
+    def get_group_chat(self):
+        return self.group_chat
 
     def summary(self):
         print("\n--- Camp Summary ---")
@@ -83,7 +98,8 @@ def save_to_file():
             "activities": camp.activities,
             "daily_food_usage": camp.daily_food_usage,
             "daily_records": camp.daily_records,
-            "pay_rate": camp.pay_rate
+            "pay_rate": camp.pay_rate,
+            "group_chat": camp.group_chat
         })
 
     with open(data_path("camp_data.json"), "w") as file:
@@ -124,5 +140,6 @@ def read_from_file():
         camp.daily_food_usage = camp_data.get("daily_food_usage", {})
         camp.daily_records = camp_data.get("daily_records", {})
         camp.pay_rate = camp_data.get("pay_rate", 0)
+        camp.group_chat = camp_data.get("group_chat", [])
 
     return Camp.all_camps
