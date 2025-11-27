@@ -376,7 +376,18 @@ class AdminWindow(ttk.Frame):
         vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=vsb.set)
         tree.pack(fill="both", expand=True, pady=(0, 4))
-        vsb.pack(fill="y", side="right")
+
+        def refresh_scrollbar(*_):
+            # show scrollbar only if rows exceed visible area
+            visible = max(int(tree.winfo_height() / 20), 1)
+            if len(tree.get_children()) > visible:
+                if not vsb.winfo_ismapped():
+                    vsb.pack(fill="y", side="right")
+            else:
+                if vsb.winfo_ismapped():
+                    vsb.pack_forget()
+
+        tree.bind("<Configure>", refresh_scrollbar)
 
         def add_row(role, user):
             status = "Disabled" if user['username'] in disabled_set else "Active"
