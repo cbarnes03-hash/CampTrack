@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 import os
 from datetime import datetime
+from PIL import Image, ImageTk
 
 from user_logins import users, load_logins, check_disabled_logins, save_logins, disabled_logins, enable_login
 from features.admin import list_users
@@ -31,12 +32,12 @@ from features.scout import (
 )
 from messaging import get_conversations_for_user, get_conversation, send_message
 
-THEME_BG = "#0f172a"
-THEME_CARD = "#1f2937"
-THEME_FG = "#e2e8f0"
-THEME_ACCENT = "#2563eb"
-THEME_ACCENT_ACTIVE = "#1d4ed8"
-THEME_ACCENT_PRESSED = "#1e40af"
+THEME_BG = "#0b1f36"          # deep navy to match header of the logo
+THEME_CARD = "#12263f"        # slightly lighter navy for cards
+THEME_FG = "#e6f1ff"          # soft off-white text
+THEME_ACCENT = "#38bdf8"      # teal accent
+THEME_ACCENT_ACTIVE = "#0ea5e9"
+THEME_ACCENT_PRESSED = "#0284c7"
 
 class LoginWindow(ttk.Frame):
     def __init__(self, master):
@@ -50,17 +51,30 @@ class LoginWindow(ttk.Frame):
         card.columnconfigure(0, weight=1)
         card.columnconfigure(1, weight=1)
 
-        ttk.Label(card, text="CampTrack", style="Header.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 4))
-        ttk.Label(card, text="Welcome! Please log in below.").grid(row=1, column=0, columnspan=2, pady=(0, 14))
+        row = 0
+        logo_path = os.path.join(os.path.dirname(__file__), "image.png")
+        self.logo_img = None
+        if os.path.exists(logo_path):
+            try:
+                with Image.open(logo_path) as im:
+                    im.thumbnail((240, 240), Image.LANCZOS)
+                    self.logo_img = ImageTk.PhotoImage(im)
+                tk.Label(card, image=self.logo_img, bg=THEME_CARD, borderwidth=0).grid(row=row, column=0, columnspan=2, pady=(0, 8))
+                row += 1
+            except Exception:
+                pass
 
-        ttk.Label(card, text="Username").grid(row=2, column=0, sticky="e", padx=8, pady=8)
-        ttk.Label(card, text="Password").grid(row=3, column=0, sticky="e", padx=8, pady=8)
+        ttk.Label(card, text="Welcome! Please log in below.", background=THEME_CARD, foreground=THEME_FG).grid(row=row, column=0, columnspan=2, pady=(0, 14))
+        row += 1
+
+        ttk.Label(card, text="Username").grid(row=row, column=0, sticky="e", padx=8, pady=8)
+        ttk.Label(card, text="Password").grid(row=row + 1, column=0, sticky="e", padx=8, pady=8)
         self.username = ttk.Entry(card, width=32)
         self.password = ttk.Entry(card, show="*", width=32)
-        self.username.grid(row=2, column=1, sticky="ew", padx=8, pady=8)
-        self.password.grid(row=3, column=1, sticky="ew", padx=8, pady=8)
+        self.username.grid(row=row, column=1, sticky="ew", padx=8, pady=8)
+        self.password.grid(row=row + 1, column=1, sticky="ew", padx=8, pady=8)
 
-        ttk.Button(card, text="Login", command=self.attempt_login).grid(row=4, column=0, columnspan=2, pady=14, padx=8, sticky="ew")
+        ttk.Button(card, text="Login", command=self.attempt_login).grid(row=row + 2, column=0, columnspan=2, pady=14, padx=8, sticky="ew")
 
     def attempt_login(self):
         state_info = capture_window_state(self.master)
@@ -547,18 +561,21 @@ class LogisticsWindow(ttk.Frame):
     def messaging_ui(self):
         convo_win = tk.Toplevel(self)
         convo_win.title("Messaging")
-        tk.Label(convo_win, text="Conversations").pack()
-        listbox = tk.Listbox(convo_win)
-        listbox.pack(fill="both", expand=True)
+        convo_win.configure(bg=THEME_BG)
+        frame = ttk.Frame(convo_win, padding=12, style="Card.TFrame")
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="Conversations").pack()
+        listbox = tk.Listbox(frame)
+        listbox.pack(fill="both", expand=True, pady=6)
         partners = get_conversations_for_user(self.username)
         for p in partners:
             listbox.insert("end", p)
-        tk.Label(convo_win, text="Recipient:").pack()
-        recipient_entry = tk.Entry(convo_win)
-        recipient_entry.pack()
-        tk.Label(convo_win, text="Message:").pack()
-        message_entry = tk.Entry(convo_win, width=50)
-        message_entry.pack()
+        ttk.Label(frame, text="Recipient:").pack()
+        recipient_entry = ttk.Entry(frame)
+        recipient_entry.pack(fill="x", pady=2)
+        ttk.Label(frame, text="Message:").pack()
+        message_entry = ttk.Entry(frame, width=50)
+        message_entry.pack(fill="x", pady=2)
 
         def send():
             to = recipient_entry.get().strip()
@@ -566,7 +583,7 @@ class LogisticsWindow(ttk.Frame):
             if to and msg:
                 send_message(self.username, to, msg)
                 messagebox.showinfo("Sent", f"Message sent to {to}")
-        tk.Button(convo_win, text="Send", command=send).pack(pady=5)
+        ttk.Button(frame, text="Send", command=send).pack(pady=8, fill="x")
 
     def choose_camp_name(self):
         camps = read_from_file()
@@ -747,18 +764,21 @@ class ScoutWindow(ttk.Frame):
     def messaging_ui(self):
         convo_win = tk.Toplevel(self)
         convo_win.title("Messaging")
-        tk.Label(convo_win, text="Conversations").pack()
-        listbox = tk.Listbox(convo_win)
-        listbox.pack(fill="both", expand=True)
+        convo_win.configure(bg=THEME_BG)
+        frame = ttk.Frame(convo_win, padding=12, style="Card.TFrame")
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="Conversations").pack()
+        listbox = tk.Listbox(frame)
+        listbox.pack(fill="both", expand=True, pady=6)
         partners = get_conversations_for_user(self.username)
         for p in partners:
             listbox.insert("end", p)
-        tk.Label(convo_win, text="Recipient:").pack()
-        recipient_entry = tk.Entry(convo_win)
-        recipient_entry.pack()
-        tk.Label(convo_win, text="Message:").pack()
-        message_entry = tk.Entry(convo_win, width=50)
-        message_entry.pack()
+        ttk.Label(frame, text="Recipient:").pack()
+        recipient_entry = ttk.Entry(frame)
+        recipient_entry.pack(fill="x", pady=2)
+        ttk.Label(frame, text="Message:").pack()
+        message_entry = ttk.Entry(frame, width=50)
+        message_entry.pack(fill="x", pady=2)
 
         def send():
             to = recipient_entry.get().strip()
@@ -766,7 +786,7 @@ class ScoutWindow(ttk.Frame):
             if to and msg:
                 send_message(self.username, to, msg)
                 messagebox.showinfo("Sent", f"Message sent to {to}")
-        tk.Button(convo_win, text="Send", command=send).pack(pady=5)
+        ttk.Button(frame, text="Send", command=send).pack(pady=8, fill="x")
 
     def logout(self):
         state_info = capture_window_state(self.master)
@@ -902,11 +922,13 @@ def center_window(win, width=500, height=400):
 
 def launch_login():
     root = tk.Tk()
+    root.withdraw()
     root.title("CampTrack Login")
     root.minsize(480, 360)
     init_style(root)
-    center_window(root, width=520, height=400)
     LoginWindow(root)
+    center_window(root, width=520, height=400)
+    root.deiconify()
     root.mainloop()
 
 
