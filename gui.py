@@ -32,10 +32,11 @@ from features.scout import (
 )
 from messaging import get_conversations_for_user, get_conversation, send_message
 
-THEME_BG = "#0b1f36"          # deep navy to match header of the logo
-THEME_CARD = "#12263f"        # slightly lighter navy for cards
-THEME_FG = "#e6f1ff"          # soft off-white text
-THEME_ACCENT = "#38bdf8"      # teal accent
+THEME_BG = "#0b1f36"          # outer background (window)
+THEME_CARD = "#12263f"        # inner card (like screenshot)
+THEME_FG = "#e6f1ff"          # main text
+THEME_MUTED = "#cbd5f5"       # subtle/secondary text
+THEME_ACCENT = "#38bdf8"      # primary accent (buttons)
 THEME_ACCENT_ACTIVE = "#0ea5e9"
 THEME_ACCENT_PRESSED = "#0284c7"
 
@@ -44,37 +45,40 @@ class LoginWindow(ttk.Frame):
         super().__init__(master, padding=12, style="App.TFrame")
         self.master = master
         self.pack(fill="both", expand=True)
-        # center the login form in a padded, fixed-width container
-        card = ttk.Frame(self, padding=24, width=420, style="Card.TFrame")
-        card.pack(expand=True)
-        card.pack_propagate(False)
-        card.columnconfigure(0, weight=1)
-        card.columnconfigure(1, weight=1)
+        # center the login form in a padded, fixed-width container (height driven by children)
+        card = ttk.Frame(self, padding=20, width=520, style="Card.TFrame")
+        card.pack(expand=True, padx=16, pady=16)
 
-        row = 0
+        # branding block
         logo_path = os.path.join(os.path.dirname(__file__), "image.png")
         self.logo_img = None
         if os.path.exists(logo_path):
             try:
                 with Image.open(logo_path) as im:
-                    im.thumbnail((240, 240), Image.LANCZOS)
+                    im.thumbnail((260, 260), Image.LANCZOS)
                     self.logo_img = ImageTk.PhotoImage(im)
-                tk.Label(card, image=self.logo_img, bg=THEME_CARD, borderwidth=0).grid(row=row, column=0, columnspan=2, pady=(0, 8))
-                row += 1
+                tk.Label(
+                    card,
+                    image=self.logo_img,
+                    bg=THEME_CARD,
+                    borderwidth=0,
+                    highlightthickness=0,
+                ).pack(pady=(0, 8))
             except Exception:
                 pass
 
-        ttk.Label(card, text="Welcome! Please log in below.", background=THEME_CARD, foreground=THEME_FG).grid(row=row, column=0, columnspan=2, pady=(0, 14))
-        row += 1
+        ttk.Separator(card, orient="horizontal").pack(fill="x", pady=(8, 16))
 
-        ttk.Label(card, text="Username").grid(row=row, column=0, sticky="e", padx=8, pady=8)
-        ttk.Label(card, text="Password").grid(row=row + 1, column=0, sticky="e", padx=8, pady=8)
-        self.username = ttk.Entry(card, width=32)
-        self.password = ttk.Entry(card, show="*", width=32)
-        self.username.grid(row=row, column=1, sticky="ew", padx=8, pady=8)
-        self.password.grid(row=row + 1, column=1, sticky="ew", padx=8, pady=8)
+        # fields with labels above
+        ttk.Label(card, text="Username", style="FieldLabel.TLabel").pack(anchor="w", padx=8, pady=(0, 4))
+        self.username = ttk.Entry(card, width=36, style="App.TEntry")
+        self.username.pack(fill="x", padx=8, pady=(0, 10))
 
-        ttk.Button(card, text="Login", command=self.attempt_login).grid(row=row + 2, column=0, columnspan=2, pady=14, padx=8, sticky="ew")
+        ttk.Label(card, text="Password", style="FieldLabel.TLabel").pack(anchor="w", padx=8, pady=(0, 4))
+        self.password = ttk.Entry(card, show="*", width=36, style="App.TEntry")
+        self.password.pack(fill="x", padx=8, pady=(0, 14))
+
+        ttk.Button(card, text="Login", command=self.attempt_login, style="Primary.TButton").pack(fill="x", padx=8, pady=(0, 4))
 
     def attempt_login(self):
         state_info = capture_window_state(self.master)
@@ -881,30 +885,144 @@ def init_style(root):
         style.theme_use("clam")
     except Exception:
         pass
+
     root.configure(bg=THEME_BG)
-    style.configure("TFrame", background=THEME_BG, padding=2)
+
+    base_font = ("Helvetica", 11)
+
+    # Frames / cards
+    style.configure("TFrame", background=THEME_BG)
     style.configure("App.TFrame", background=THEME_BG, padding=12)
-    style.configure("Card.TFrame", background=THEME_CARD, padding=12)
-    style.configure("TLabel", padding=2, background=THEME_CARD, foreground=THEME_FG, font=("Helvetica", 11))
-    style.configure("Header.TLabel", font=("Helvetica", 16, "bold"), background=THEME_CARD, foreground=THEME_FG)
-    style.configure("TButton", padding=8, background=THEME_ACCENT, foreground=THEME_FG, font=("Helvetica", 11))
-    style.map("TButton",
-              background=[("active", THEME_ACCENT_ACTIVE), ("pressed", THEME_ACCENT_PRESSED)],
-              foreground=[("disabled", "#9ca3af")])
+    style.configure("Card.TFrame", background=THEME_CARD, padding=18)
+
+    # General labels
+    style.configure(
+        "TLabel",
+        background=THEME_CARD,
+        foreground=THEME_FG,
+        font=base_font,
+        padding=2,
+    )
+
+    style.configure(
+        "Header.TLabel",
+        font=("Helvetica", 16, "bold"),
+        background=THEME_CARD,
+        foreground=THEME_FG,
+    )
+
+    style.configure(
+        "Title.TLabel",
+        font=("Helvetica", 20, "bold"),
+        background=THEME_CARD,
+        foreground=THEME_FG,
+    )
+
+    style.configure(
+        "Subtitle.TLabel",
+        font=("Helvetica", 11),
+        background=THEME_CARD,
+        foreground=THEME_MUTED,
+    )
+
+    style.configure(
+        "FieldLabel.TLabel",
+        font=base_font,
+        background=THEME_CARD,
+        foreground="#e5e7eb",
+    )
+
+    style.configure(
+        "Error.TLabel",
+        font=("Helvetica", 10),
+        background=THEME_CARD,
+        foreground="#fca5a5",
+    )
+
+    # Labelframes
+    style.configure("TLabelframe", background=THEME_CARD, foreground=THEME_FG, padding=6)
+    style.configure(
+        "TLabelframe.Label",
+        background=THEME_CARD,
+        foreground=THEME_FG,
+        font=("Helvetica", 11, "bold"),
+    )
+
+    # Entries
+    style.configure(
+        "App.TEntry",
+        fieldbackground="#0b1729",
+        foreground=THEME_FG,
+        insertcolor=THEME_FG,
+        bordercolor="#1f2937",
+        lightcolor=THEME_ACCENT,
+        darkcolor="#000000",
+        relief="flat",
+        padding=6,
+    )
+
+    # Base button
+    style.configure(
+        "TButton",
+        padding=8,
+        background=THEME_ACCENT,
+        foreground=THEME_FG,
+        font=base_font,
+        borderwidth=0,
+    )
+    style.map(
+        "TButton",
+        background=[
+            ("active", THEME_ACCENT_ACTIVE),
+            ("pressed", THEME_ACCENT_PRESSED),
+            ("disabled", "#1f2937"),
+        ],
+        foreground=[("disabled", "#9ca3af")],
+    )
+
+    # Primary button (e.g. login)
+    style.configure(
+        "Primary.TButton",
+        padding=9,
+        background=THEME_ACCENT,
+        foreground=THEME_FG,
+        font=("Helvetica", 11, "bold"),
+        borderwidth=0,
+    )
+    style.map(
+        "Primary.TButton",
+        background=[
+            ("active", THEME_ACCENT_ACTIVE),
+            ("pressed", THEME_ACCENT_PRESSED),
+            ("disabled", "#1f2937"),
+        ],
+        foreground=[("disabled", "#9ca3af")],
+    )
+
+    # Danger button (logout, delete, etc.)
     style.configure(
         "Danger.TButton",
         padding=8,
         background="#dc2626",
         foreground=THEME_FG,
         font=("Helvetica", 11, "bold"),
+        borderwidth=0,
     )
     style.map(
         "Danger.TButton",
         background=[("active", "#b91c1c"), ("pressed", "#991b1b")],
         foreground=[("disabled", "#9ca3af")],
     )
-    style.configure("TLabelframe", background=THEME_CARD, foreground=THEME_FG, padding=6)
-    style.configure("TLabelframe.Label", background=THEME_CARD, foreground=THEME_FG, font=("Helvetica", 11, "bold"))
+
+    # Separator
+    style.configure(
+        "TSeparator",
+        background=THEME_CARD,
+        foreground=THEME_CARD,
+        bordercolor=THEME_CARD,
+        darkcolor=THEME_CARD,
+        lightcolor=THEME_CARD,
+    )
 
 
 def center_window(win, width=500, height=400):
