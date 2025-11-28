@@ -141,13 +141,14 @@ def assign_camps_to_leader(camps, leader_username, selected_indices):
     # apply assignments
     for camp in camps:
         if camp.name in selected_camp_names:
-            camp.assign_leader(leader_username)
+            if leader_username not in camp.scout_leaders:
+                camp.scout_leaders.append(leader_username)
         else:
             if leader_username in camp.scout_leaders:
                 camp.scout_leaders.remove(leader_username)
+
     save_to_file()
     return {"status": "ok", "selected": selected_camp_names}
-
 
 def assign_camps_to_leader_ui(leader_username):
     camps = read_from_file()
@@ -358,16 +359,6 @@ def view_activity_stats():
         print(f"\nTotal food used across recorded activities: {stats['total_food_used']} units")
 
 
-def print_engagement_score():
-    scores = engagement_scores_data()
-    if not scores:
-        print("\nNo camps found.")
-        return
-    print("\n--- Existing Camps ---")
-    for i, (name, score) in enumerate(scores, start=1):
-        print(f"{i}. {name} (Engagement: {score})")
-
-
 def info_from_json():
     with open(data_path('camp_data.json'), 'r') as file:
         data = json.load(file)
@@ -411,7 +402,16 @@ def show_total_money():
 
 def engagement_scores_data():
     read_from_file()
-    return [(camp.name, _engagement_score(camp)) for camp in Camp.all_camps]
+    scores = []
+    for camp in Camp.all_camps:
+        if camp.activities:
+            score = sum(len(entries) for entries in camp.activities.values())
+        else:
+            score = 0
+    
+        scores.append((camp.name, score))
+    return scores
+
 
 
 def money_earned_per_camp_data():

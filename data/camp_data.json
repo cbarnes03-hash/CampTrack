@@ -7,13 +7,17 @@
         "end_date": "2025-06-12",
         "food_stock": 20,
         "scout_leaders": [
-            "leader1"
+            "leader3"
         ],
         "campers": [
             "Alice",
             "Ben",
             "Cara",
-            "Dylan"
+            "Dylan",
+            "Emily",
+            "Jacob",
+            "Bella",
+            "Edward"
         ],
         "activities": {
             "2025-06-10": [
@@ -56,7 +60,24 @@
                 "Learned map skills and first aid."
             ]
         },
-        "pay_rate": 100
+        "pay_rate": 100,
+        "group_chat": [
+            {
+                "from": "System",
+                "text": "leader1 has joined the group chat.",
+                "timestamp": "2025-11-28 08:56:57"
+            },
+            {
+                "from": "System",
+                "text": "leader3 has joined the group chat.",
+                "timestamp": "2025-11-28 08:59:42"
+            },
+            {
+                "from": "System",
+                "text": "leader1 has joined the group chat.",
+                "timestamp": "2025-11-28 10:27:27"
+            }
+        ]
     },
     {
         "name": "Cedar Grove",
@@ -66,7 +87,8 @@
         "end_date": "2025-07-05",
         "food_stock": 15,
         "scout_leaders": [
-            "leader2"
+            "leader2",
+            "leader3"
         ],
         "campers": [
             "Ella",
@@ -96,7 +118,19 @@
                 "Great engagement, no incidents."
             ]
         },
-        "pay_rate": 90
+        "pay_rate": 90,
+        "group_chat": [
+            {
+                "from": "System",
+                "text": "leader1 has joined the group chat.",
+                "timestamp": "2025-11-28 08:56:57"
+            },
+            {
+                "from": "System",
+                "text": "leader3 has joined the group chat.",
+                "timestamp": "2025-11-28 08:59:42"
+            }
+        ]
     },
     {
         "name": "Maple Summit",
@@ -106,7 +140,8 @@
         "end_date": "2025-08-18",
         "food_stock": 25,
         "scout_leaders": [
-            "leader2"
+            "leader2",
+            "leader3"
         ],
         "campers": [
             "Hana",
@@ -160,6 +195,18 @@
                 "Maintenance done, good teamwork."
             ]
         },
-        "pay_rate": 110
+        "pay_rate": 110,
+        "group_chat": [
+            {
+                "from": "System",
+                "text": "leader1 has joined the group chat.",
+                "timestamp": "2025-11-28 08:58:39"
+            },
+            {
+                "from": "System",
+                "text": "leader3 has joined the group chat.",
+                "timestamp": "2025-11-28 08:59:42"
+            }
+        ]
     }
 ]

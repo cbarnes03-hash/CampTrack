@@ -1469,7 +1469,8 @@ class ScoutWindow(ttk.Frame):
         actions.pack(fill="both", expand=True, pady=(0, 14))
         ttk.Label(actions, text="Select camps, import campers, and set food needs.", style="Subtitle.TLabel").pack(anchor="w", pady=(0, 6))
         for text, cmd in [
-            ("Select Camps", self.select_camps_ui),
+            ("Select Camp(s) to supervise", self.select_camps_ui),
+            ("Stop supervising Camp(s)", self.unsupervise_camps_ui),
             ("Import Campers", self.bulk_assign_ui),
             ("Set Food per Camper", self.food_req_ui),
             ("Record Activity", self.record_activity_ui),
@@ -1506,12 +1507,45 @@ class ScoutWindow(ttk.Frame):
             show_error_toast(self.master, "Error", "Invalid selection.")
         else:
             show_error_toast(self.master, "Error", status or "Unknown error")
+    
+    def unsupervise_camps_ui(self):
+        camps = read_from_file()
+        if not camps:
+            messagebox.showinfo("Stop Supervising", "No camps exist.")
+            return
+        supervised = [c for c in camps if self.username in c.scout_leaders]
+        if not supervised:
+            messagebox.showinfo("Stop Supervising", "You are not supervising any camps yet.")
+            return
+        
+        indices = select_camp_dialog(
+            "Select camp(s) to stop supervising",
+            supervised,
+            allow_multiple= True,
+            allow_cancel= True
+        )
+        if not indices:
+            return
+        
+        for i in indices:
+            camp = supervised[i]
+            if self.username in camp.scout_leaders:
+                camp.scout_leaders.remove(self.username)
+        
+        save_to_file()
+        messagebox.showinfo("Updated", "You are no longer supervising the selected camp(s).")
+
 
     def bulk_assign_ui(self):
         camps = read_from_file()
         if not camps:
             messagebox.showinfo("Bulk Assign", "No camps exist.")
             return
+        supervised = [c for c in camps if self.username in c.scout_leaders]
+        if not supervised:
+            messagebox.showinfo("Bulk Assign", "You are not supervisiing any camps yet.")
+            return
+        
         top = tk.Toplevel(self)
         top.title("Bulk Assign Campers")
         top.configure(bg=THEME_BG)
@@ -1537,7 +1571,7 @@ class ScoutWindow(ttk.Frame):
         camp_list.configure(yscrollcommand=scroll.set)
         camp_list.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
         scroll.pack(side="right", fill="y", padx=(0, 4), pady=4)
-        for camp in camps:
+        for camp in supervised:
             camp_list.insert("end", f"{camp.name} ({camp.location})")
 
         ttk.Separator(frame).pack(fill="x", pady=(4, 8))
@@ -1564,7 +1598,7 @@ class ScoutWindow(ttk.Frame):
             if not filepath:
                 show_error_toast(self.master, "Error", "Please choose a CSV file.")
                 return
-            camp = camps[sel[0]]
+            camp = supervised[int(sel[0])]
             res = bulk_assign_campers_from_csv(camp.name, filepath)
             status = res.get("status")
             if status == "ok":
@@ -1587,10 +1621,14 @@ class ScoutWindow(ttk.Frame):
         if not camps:
             messagebox.showinfo("Food", "No camps exist.")
             return
+        supervised = [c for c in camps if self.username in c.scout_leaders]
+        if not supervised:
+            messagebox.showinfo("Bulk Assign", "You are not supervisiing any camps yet.")
+            return
         indices = select_camp_dialog("Select camp to set food requirement", camps, allow_multiple=False)
         if not indices:
             return
-        camp = camps[indices[0]].name
+        camp = supervised[indices[0]].name
         units = simple_prompt_int("Daily food units per camper")
         if units is None:
             return
@@ -1606,6 +1644,10 @@ class ScoutWindow(ttk.Frame):
         if not camps:
             messagebox.showinfo("Activity", "No camps exist.")
             return
+        supervised = [c for c in camps if self.username in c.scout_leaders]
+        if not supervised:
+            messagebox.showinfo("Bulk Assign", "You are not supervisiing any camps yet.")
+            return
         top = tk.Toplevel(self)
         top.title("Record Activity")
         top.configure(bg=THEME_BG)
@@ -1616,7 +1658,7 @@ class ScoutWindow(ttk.Frame):
 
         ttk.Label(frame, text="Camp", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
         camp_var = tk.StringVar(value=camps[0].name)
-        ttk.OptionMenu(frame, camp_var, camps[0].name, *[c.name for c in camps]).pack(fill="x", pady=(0, 8))
+        ttk.OptionMenu(frame, camp_var, supervised[0].name, *[c.name for c in supervised]).pack(fill="x", pady=(0, 8))
 
         def add_entry(label, initial=""):
             ttk.Label(frame, text=label, style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
@@ -1785,13 +1827,14 @@ def select_camp_dialog(title, camps, allow_multiple=False, allow_cancel=False):
     listbox.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=4)
     scrollbar.pack(side="right", fill="y", padx=(0, 4), pady=4)
     for camp in camps:
-        listbox.insert("end", f"{camp.name} ({camp.location}) {camp.start_date}->{camp.end_date}")
+        leaders = ",".join(camp.scout_leaders) if camp.scout_leaders else "None"
+        listbox.insert("end", f"{camp.name} ({camp.location}) {camp.start_date}->{camp.end_date} | Leaders: {leaders}")
 
     result = {"indices": None}
 
     def on_ok():
         sel = listbox.curselection()
-        result["indices"] = list(sel)
+        result["indices"] = [int(i) for i in sel]
         top.destroy()
 
     def on_cancel():
