@@ -1625,7 +1625,7 @@ class ScoutWindow(ttk.Frame):
         if not supervised:
             messagebox.showinfo("Bulk Assign", "You are not supervisiing any camps yet.")
             return
-        indices = select_camp_dialog("Select camp to set food requirement", camps, allow_multiple=False)
+        indices = select_camp_dialog("Select camp to set food requirement", supervised, allow_multiple=False)
         if not indices:
             return
         camp = supervised[indices[0]].name
@@ -1657,7 +1657,7 @@ class ScoutWindow(ttk.Frame):
         ttk.Separator(frame).pack(fill="x", pady=(0, 8))
 
         ttk.Label(frame, text="Camp", style="FieldLabel.TLabel").pack(anchor="w", pady=(0, 2))
-        camp_var = tk.StringVar(value=camps[0].name)
+        camp_var = tk.StringVar(value=supervised[0].name)
         ttk.OptionMenu(frame, camp_var, supervised[0].name, *[c.name for c in supervised]).pack(fill="x", pady=(0, 8))
 
         def add_entry(label, initial=""):
